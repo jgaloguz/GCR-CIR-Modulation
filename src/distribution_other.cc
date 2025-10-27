@@ -8,6 +8,7 @@ This file is part of the SPECTRUM suite of scientific numerical simulation codes
 */
 
 #include "distribution_other.hh"
+#include "geometry/coordinates.hh"
 #include "common/physics.hh"
 
 namespace Spectrum {
