@@ -582,6 +582,9 @@ void DomainPartition<blocktype>::PrintExchSites(void) const
          std::cerr << std::setw(5) << site->GetPartCount() << " parts ";
          std::cerr << std::setw(5) << site->GetCommSize() << " processes\n";
       };
+
+// Unpack the buffers - test with a different loop location
+      for (auto block = 0; block < blocks_local.size(); block++) blocks_local[block].UnPackBuffers(ntype);
    };
 };
 

@@ -98,6 +98,17 @@ public:
 
 /*!
 \author Vladimir Florinski
+\date 01/08/20256
+\param[in] other Object to move into this
+*/
+template <int verts_per_face>
+SPECTRUM_DEVICE_FUNC inline PolygonalAddressing<verts_per_face>::PolygonalAddressing(PolygonalAddressing<verts_per_face>&& other)
+                                                               : PolygonalAddressing<verts_per_face>()
+{
+};
+
+/*!
+\author Vladimir Florinski
 \date 05/06/2024
 \param[in] len Length of a side
 \return Number of edges in a sector whose side is "len"

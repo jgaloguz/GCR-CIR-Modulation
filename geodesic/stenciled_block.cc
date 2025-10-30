@@ -401,6 +401,12 @@ void StenciledBlock<verts_per_face>::BuildAllStencils(void)
 
    int ic, nface, face;
 
+#ifdef GEO_DEBUG
+#if GEO_DEBUG_LEVEL >= 3
+   std::cerr << "Building stencils for a StenciledBlock\n";
+#endif
+#endif
+
    zones_per_stencil[0] = verts_per_face + 2;
    for (auto stencil = 1; stencil < n_stencils; stencil++) zones_per_stencil[stencil] = 4;
 

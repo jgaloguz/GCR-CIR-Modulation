@@ -130,6 +130,88 @@ GridBlock<verts_per_face>::GridBlock(GridBlock&& other) noexcept
 
 /*!
 \author Vladimir Florinski
+\date 01/08/2025
+\param[in] other Object to move into this
+\note The move constructor for "SphericalSlab" calls its "SetDimensions()" method
+*/
+template <int verts_per_face>
+GridBlock<verts_per_face>::GridBlock(GridBlock&& other)
+                         : SphericalSlab(std::move(static_cast<SphericalSlab&&>(other))),
+                           GeodesicSector<verts_per_face>(std::move(static_cast<GeodesicSector<verts_per_face>&&>(other)))
+{
+#ifdef GEO_DEBUG
+#if GEO_DEBUG_LEVEL >= 3
+   std::cerr << "Move constructing a GridBlock\n";
+#endif
+#endif
+
+   Setup();
+   if (other.side_length == -1) return;
+
+// Copy the radial grid properties
+   Rmin = other.Rmin;
+   Rmax = other.Rmax;
+   LogRmax_Rmin = other.LogRmax_Rmin;
+   drp_ratio = other.drp_ratio;
+   dxi = other.dxi;
+   
+// Move the radial grid
+   xi_in = other.xi_in;
+   r_in = other.r_in;
+   r2_in = other.r2_in;
+   r3_in = other.r3_in;
+   rp_in = other.rp_in;
+   dr = other.dr;
+   r_mp = other.r_mp;
+   drp = other.drp;
+   other.xi_in = nullptr;
+   other.r_in = nullptr;
+   other.r2_in = nullptr;
+   other.r3_in = nullptr;
+   other.rp_in = nullptr;
+   other.dr = nullptr;
+   other.r_mp = nullptr;
+   other.drp = nullptr;
+
+   dist_map = std::move(other.dist_map);
+
+// Copy the geodesic mesh properties
+   block_index = other.block_index;
+   mesh_associated = other.mesh_associated;
+   n_singular = other.n_singular;
+   std::memcpy(border_type, other.border_type, 2 * sizeof(bool));
+   std::memcpy(corner_type, other.corner_type, verts_per_face * sizeof(bool));
+   other.block_index = -1;
+
+// Move the duplicate element arrays
+   std::memcpy(dup_vert, other.dup_vert, verts_per_face * sizeof(int**));
+   std::memcpy(dup_edge, other.dup_edge, verts_per_face * sizeof(int**));
+   missing_faces = other.missing_faces;
+   other.dup_vert[0] = nullptr;
+   other.dup_edge[0] = nullptr;
+   other.missing_faces = nullptr;
+
+// Move the vertex coordinates
+   block_vert_cart = other.block_vert_cart;
+   other.block_vert_cart = nullptr;
+   
+#ifdef USE_SILO
+
+// Move the SILO index arrays
+   vert_to_silo = other.vert_to_silo;
+   face_to_silo = other.face_to_silo;
+   silo_to_vert = other.silo_to_vert;
+   silo_to_face = other.silo_to_face;
+   other.vert_to_silo = nullptr;
+   other.face_to_silo = nullptr;
+   other.silo_to_vert = nullptr;
+   other.silo_to_face = nullptr;
+
+#endif
+};
+
+/*!
+\author Vladimir Florinski
 \date 05/08/2024
 \param[in] width  Length of the side, without ghost cells
 \param[in] wgohst Width of the ghost cell layer outside the sector
@@ -517,6 +599,12 @@ void GridBlock<verts_per_face>::FixSingularCorners(void)
 
    dup_edge[0] = Create2D<int>(verts_per_face * ghost_width, 2);
    for (auto corner = 1; corner < verts_per_face; corner++) dup_edge[corner] = dup_edge[corner - 1] + ghost_width;
+
+#ifdef GEO_DEBUG
+#if GEO_DEBUG_LEVEL >= 3
+   std::cerr << "Fixing singular corners for a GridBlock\n";
+#endif
+#endif
 
 // Reset the "dup" arrays
    for (auto corner = 0; corner < verts_per_face; corner++) {

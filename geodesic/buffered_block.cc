@@ -280,6 +280,15 @@ void BufferedBlock<verts_per_face, _datatype>::FreeStorage(void)
       delete[] buf_shell_start[GEONBR_RFACE][0];
       delete[] buf_shell_start[GEONBR_RFACE];
    };
+
+//----------------------------------------------------------------------------------------------------------------------------------------------------
+
+// Starting shells have fixed values
+   buf_shell_tab[0] = 0;
+   buf_shell_tab[1] = ghost_height;
+   buf_shell_tab[2] = n_shells_withghost - 2 * ghost_height;
+   buf_shell_tab[3] = n_shells_withghost - ghost_height;
+   buf_shell_tab[4] = 2 * ghost_height;
 };
 
 /*!
@@ -594,6 +603,7 @@ void BufferedBlock<verts_per_face, _datatype>::UnPackBuffers(NeighborType ntype,
                zone_cons[shell][face] = buffer[bufidx++];
             };
          };
+         actual_part++;
       };
    };
 };

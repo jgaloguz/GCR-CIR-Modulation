@@ -255,6 +255,9 @@ public:
 //! Move constructor
    GeodesicSector(GeodesicSector&& other) noexcept;
 
+//! Move constructor
+   SPECTRUM_DEVICE_FUNC GeodesicSector(GeodesicSector&& other);
+
 //! Constructor with arguments
    GeodesicSector(int width, int wghost);
 
