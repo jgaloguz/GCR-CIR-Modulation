@@ -109,6 +109,7 @@ void BlockBase::SetGhostCells(int num_ghost_cells_in)
 {
    num_ghost_cells = num_ghost_cells_in;
 
+// These are the ratios of ghost to physical cells (divided by two) per dimension
    ghost_to_phys_ratio[0] = (double)num_ghost_cells / (double)block_size.i;
    ghost_to_phys_ratio[1] = (double)num_ghost_cells / (double)block_size.j;
    ghost_to_phys_ratio[2] = (double)num_ghost_cells / (double)block_size.k;
@@ -203,15 +204,16 @@ void BlockBase::GetZoneOffset(const GeoVector& pos, MultiIndex& zone, GeoVector&
 
 /*!
 \author Vladimir Florinski
-\date 04/28/2020
+\author Juan G Alonso Guzman
+\date 10/30/2025
 \param[in] pos Position
 \return True if the vector is in the interior of the block
 */
 bool BlockBase::PositionInside(const GeoVector& pos) const
 {
-   return ((pos[0] >= face_min_phys[0]) && (pos[0] <= face_max_phys[0])
-        && (pos[1] >= face_min_phys[1]) && (pos[1] <= face_max_phys[1])
-        && (pos[2] >= face_min_phys[2]) && (pos[2] <= face_max_phys[2]));
+   return ((face_min_phys[0] < pos[0]) && (pos[0] < face_max_phys[0])
+        && (face_min_phys[1] < pos[1]) && (pos[1] < face_max_phys[1])
+        && (face_min_phys[2] < pos[2]) && (pos[2] < face_max_phys[2]));
 };
 
 /*!
@@ -248,7 +250,7 @@ int BlockBase::DataLoc(int vidx, int i, int j, int k) const
 */
 bool BlockBase::ZoneInsideBlock(const MultiIndex& zone) const
 {
-   if (   (zone.i < 0) || (zone.i >= block_size.i)
+   if (  (zone.i < 0) || (zone.i >= block_size.i)
       || (zone.j < 0) || (zone.j >= block_size.j)
       || (zone.k < 0) || (zone.k >= block_size.k)) return false;
    else return true;

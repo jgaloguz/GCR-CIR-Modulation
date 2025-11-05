@@ -452,7 +452,6 @@ int ServerBATLFront::BuildInterpolationStencil(const GeoVector& pos)
    return (nbr_level == 0 ? 1 : (nbr_level == -1 ? 2 : 3));
 
 #elif SERVER_NUM_GHOST_CELLS > 0
-
 // Interpolation is always internal
    InteriorInterpolationStencil(zone_lo, zone_hi, offset_lo, offset_hi, delta);
    return 0;

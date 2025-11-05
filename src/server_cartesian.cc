@@ -414,17 +414,17 @@ void ServerCartesianFront::GetVariablesFromReader(SpatialData& spdata)
    stencil_outcomes[2]++;
 
 // Mass density, if provided
-#ifdef SERVER_VAR_INDEX_RHO
+#if defined(SERVER_VAR_INDEX_RHO)
    rho = vars[SERVER_VAR_INDEX_RHO];
 #endif
 
 // Number density, if provided
-#ifdef SERVER_VAR_INDEX_DEN
+#if defined(SERVER_VAR_INDEX_DEN)
    spdata.n_dens = vars[SERVER_VAR_INDEX_DEN];
 #endif
 
 // Thermal pressure, if provided
-#ifdef SERVER_VAR_INDEX_PTH
+#if defined(SERVER_VAR_INDEX_PTH)
    spdata.p_ther = vars[SERVER_VAR_INDEX_PTH];
 #endif
 
@@ -441,7 +441,12 @@ void ServerCartesianFront::GetVariablesFromReader(SpatialData& spdata)
 #endif
 
 // The magnetic field must be always provided
-      spdata.Bvec[xyz] = vars[SERVER_VAR_INDEX_MAG + xyz];
+      spdata.Bvec[xyz] = vars[SERVER_VAR_INDEX_MAG0 + xyz];
+
+// If there is a correction term, add it
+#if defined(SERVER_VAR_INDEX_MAG1)
+      spdata.Bvec[xyz] += vars[SERVER_VAR_INDEX_MAG1 + xyz];
+#endif
 
 // Electric field, if provided
 #if defined(SERVER_VAR_INDEX_ELE)
@@ -460,7 +465,7 @@ void ServerCartesianFront::GetVariablesFromReader(SpatialData& spdata)
 #endif
 
 // Region(s) indicator variable(s), if provided
-#ifdef SERVER_VAR_INDEX_REG
+#if defined(SERVER_VAR_INDEX_REG)
    for (xyz = 0; xyz < SERVER_NUM_INDEX_REG; xyz++) spdata.region[xyz] = vars[SERVER_VAR_INDEX_REG + xyz];
 #else
    spdata.region = gv_zeros;
@@ -484,17 +489,17 @@ void ServerCartesianFront::GetVariablesInterp0(const GeoVector& pos, SpatialData
    MultiIndex zone = block_pri->GetZone(pos);
 
 // Mass density, if provided
-#ifdef SERVER_VAR_INDEX_RHO
+#if defined(SERVER_VAR_INDEX_RHO)
    rho = block_pri->GetValue(zone, SERVER_VAR_INDEX_RHO);
 #endif
 
 // Number density, if provided
-#ifdef SERVER_VAR_INDEX_DEN
+#if defined(SERVER_VAR_INDEX_DEN)
    spdata.n_dens = block_pri->GetValue(zone, SERVER_VAR_INDEX_DEN);
 #endif
 
 // Thermal pressure, if provided
-#ifdef SERVER_VAR_INDEX_PTH
+#if defined(SERVER_VAR_INDEX_PTH)
    spdata.p_ther = block_pri->GetValue(zone, SERVER_VAR_INDEX_PTH);
 #endif
 
@@ -512,7 +517,12 @@ void ServerCartesianFront::GetVariablesInterp0(const GeoVector& pos, SpatialData
 #endif
 
 // The magnetic field must be always provided
-      spdata.Bvec[xyz] = block_pri->GetValue(zone, SERVER_VAR_INDEX_MAG + xyz);
+      spdata.Bvec[xyz] = block_pri->GetValue(zone, SERVER_VAR_INDEX_MAG0 + xyz);
+
+// If there is a correction term, add it
+#if defined(SERVER_VAR_INDEX_MAG1)
+      spdata.Bvec[xyz] += block_pri->GetValue(zone, SERVER_VAR_INDEX_MAG1 + xyz);
+#endif
 
 // Electric field, if provided
 #if defined(SERVER_VAR_INDEX_ELE)
@@ -531,7 +541,7 @@ void ServerCartesianFront::GetVariablesInterp0(const GeoVector& pos, SpatialData
 #endif
 
 // Region(s) indicator variable(s), if provided
-#ifdef SERVER_VAR_INDEX_REG
+#if defined(SERVER_VAR_INDEX_REG)
    for (xyz = 0; xyz < SERVER_NUM_INDEX_REG; xyz++) spdata.region[xyz] = block_pri->GetValue(zone, SERVER_VAR_INDEX_REG + xyz);
 #else
    spdata.region = gv_zeros;
@@ -563,9 +573,12 @@ void ServerCartesianFront::GetVariablesInterp1(const GeoVector& pos, SpatialData
             vars[vidx] += stencil.weights[iz] * var;
          };
 // B magnitude
-         _Bmag2 = Sqr(block_pri->GetValue(stencil.zones[iz], SERVER_VAR_INDEX_MAG))
-                + Sqr(block_pri->GetValue(stencil.zones[iz], SERVER_VAR_INDEX_MAG + 1))
-                + Sqr(block_pri->GetValue(stencil.zones[iz], SERVER_VAR_INDEX_MAG + 2));
+         _Bmag2 = Sqr( block_pri->GetValue(stencil.zones[iz], SERVER_VAR_INDEX_MAG0)
+                     + block_pri->GetValue(stencil.zones[iz], SERVER_VAR_INDEX_MAG1) )
+                + Sqr( block_pri->GetValue(stencil.zones[iz], SERVER_VAR_INDEX_MAG0 + 1)
+                     + block_pri->GetValue(stencil.zones[iz], SERVER_VAR_INDEX_MAG1 + 1) )
+                + Sqr( block_pri->GetValue(stencil.zones[iz], SERVER_VAR_INDEX_MAG0 + 2)
+                     + block_pri->GetValue(stencil.zones[iz], SERVER_VAR_INDEX_MAG1 + 2) );
          spdata.Bmag += stencil.weights[iz] * sqrt(_Bmag2);
       };
    }
@@ -584,9 +597,12 @@ void ServerCartesianFront::GetVariablesInterp1(const GeoVector& pos, SpatialData
             vars[vidx] += stencil.weights[iz] * var;
          };
 // B magnitude
-         _Bmag2 = Sqr(block_stn->GetValue(stencil.zones[iz], SERVER_VAR_INDEX_MAG))
-                + Sqr(block_stn->GetValue(stencil.zones[iz], SERVER_VAR_INDEX_MAG + 1))
-                + Sqr(block_stn->GetValue(stencil.zones[iz], SERVER_VAR_INDEX_MAG + 2));
+         _Bmag2 = Sqr( block_stn->GetValue(stencil.zones[iz], SERVER_VAR_INDEX_MAG0)
+                     + block_stn->GetValue(stencil.zones[iz], SERVER_VAR_INDEX_MAG1) )
+                + Sqr( block_stn->GetValue(stencil.zones[iz], SERVER_VAR_INDEX_MAG0 + 1)
+                     + block_stn->GetValue(stencil.zones[iz], SERVER_VAR_INDEX_MAG1 + 1) )
+                + Sqr( block_stn->GetValue(stencil.zones[iz], SERVER_VAR_INDEX_MAG0 + 2)
+                     + block_stn->GetValue(stencil.zones[iz], SERVER_VAR_INDEX_MAG1 + 2) );
          spdata.Bmag += stencil.weights[iz] * sqrt(_Bmag2);
       };
    }
@@ -603,25 +619,28 @@ void ServerCartesianFront::GetVariablesInterp1(const GeoVector& pos, SpatialData
             vars[vidx] += stencil.weights[iz] * var;
          };
 // B magnitude
-         _Bmag2 = Sqr(block_stn->GetValue(stencil.zones[iz], SERVER_VAR_INDEX_MAG))
-                + Sqr(block_stn->GetValue(stencil.zones[iz], SERVER_VAR_INDEX_MAG + 1))
-                + Sqr(block_stn->GetValue(stencil.zones[iz], SERVER_VAR_INDEX_MAG + 2));
+         _Bmag2 = Sqr( block_stn->GetValue(stencil.zones[iz], SERVER_VAR_INDEX_MAG0)
+                     + block_stn->GetValue(stencil.zones[iz], SERVER_VAR_INDEX_MAG1) )
+                + Sqr( block_stn->GetValue(stencil.zones[iz], SERVER_VAR_INDEX_MAG0 + 1)
+                     + block_stn->GetValue(stencil.zones[iz], SERVER_VAR_INDEX_MAG1 + 1) )
+                + Sqr( block_stn->GetValue(stencil.zones[iz], SERVER_VAR_INDEX_MAG0 + 2)
+                     + block_stn->GetValue(stencil.zones[iz], SERVER_VAR_INDEX_MAG1 + 2) );
          spdata.Bmag += stencil.weights[iz] * sqrt(_Bmag2);
       };
    };
 
 // Mass density, if provided
-#ifdef SERVER_VAR_INDEX_RHO
+#if defined(SERVER_VAR_INDEX_RHO)
    rho = vars[SERVER_VAR_INDEX_RHO];
 #endif
 
 // Number density, if provided
-#ifdef SERVER_VAR_INDEX_DEN
+#if defined(SERVER_VAR_INDEX_DEN)
    spdata.n_dens = vars[SERVER_VAR_INDEX_DEN];
 #endif
 
 // Thermal pressure, if provided
-#ifdef SERVER_VAR_INDEX_PTH
+#if defined(SERVER_VAR_INDEX_PTH)
    spdata.p_ther = vars[SERVER_VAR_INDEX_PTH];
 #endif
 
@@ -639,7 +658,12 @@ void ServerCartesianFront::GetVariablesInterp1(const GeoVector& pos, SpatialData
 #endif
 
 // The magnetic field must be always provided
-      spdata.Bvec[xyz] = vars[SERVER_VAR_INDEX_MAG + xyz];
+      spdata.Bvec[xyz] = vars[SERVER_VAR_INDEX_MAG0 + xyz];
+
+// If there is a correction term, add it
+#if defined(SERVER_VAR_INDEX_MAG1)
+      spdata.Bvec[xyz] += vars[SERVER_VAR_INDEX_MAG1 + xyz];
+#endif
 
 // Electric field, if provided
 #if defined(SERVER_VAR_INDEX_ELE)
@@ -658,7 +682,7 @@ void ServerCartesianFront::GetVariablesInterp1(const GeoVector& pos, SpatialData
 #endif
 
 // Region(s) indicator variable(s), if provided
-#ifdef SERVER_VAR_INDEX_REG
+#if defined(SERVER_VAR_INDEX_REG)
    for (xyz = 0; xyz < SERVER_NUM_INDEX_REG; xyz++) spdata.region[xyz] = vars[SERVER_VAR_INDEX_REG + xyz];
 #else
    spdata.region = gv_zeros;
@@ -676,10 +700,17 @@ void ServerCartesianFront::GetVariablesInterp1(const GeoVector& pos, SpatialData
 void ServerCartesianFront::GetVariables(double t, const GeoVector& pos, SpatialData& spdata)
 {
    int bidx;
+   GeoVector pos_rot = pos;
+
+// Rotate position backwards if reference frame is rotating
+#if defined(SERVER_REF_FRAME_ROTATING)
+   pos_rot.Rotate(gv_nz, -t * server_rot_rf_omega);
+#endif
 
 // Request the block and the zone size
    _inquiry.type = 1;
-   _inquiry.pos = pos;
+   _inquiry.pos = pos_rot;
+
    bidx = RequestBlock();
 
 // If "block_pri" or "block_sec" is the position owner (based on the call to RequestBlock), we don't need to acccess the cache
@@ -694,24 +725,42 @@ void ServerCartesianFront::GetVariables(double t, const GeoVector& pos, SpatialD
    GetVariablesFromReader(spdata);
 #elif SERVER_INTERP_ORDER == 0
 // Get variables using 0th order interpolation
-   GetVariablesInterp0(pos, spdata);
+   GetVariablesInterp0(pos_rot, spdata);
 #elif SERVER_INTERP_ORDER == 1
 // Get variables using 1st order interpolation
-   GetVariablesInterp1(pos, spdata);
+   GetVariablesInterp1(pos_rot, spdata);
 #else
 #error Unsupported interpolation order!
 #endif
 
-// Perform unit conversion for fields and region
-#ifdef SERVER_VAR_INDEX_DEN
+// Perform unit conversion for fields and region. Rotate fields forward if reference frame is rotating.
+#if defined(SERVER_VAR_INDEX_DEN)
    spdata.region /= spdata.n_dens;
-#endif
    spdata.n_dens *= unit_number_density_server / unit_number_density_fluid;
+#endif
+#if defined(SERVER_VAR_INDEX_FLO)
    spdata.Uvec *= unit_velocity_server / unit_velocity_fluid;
+#if defined(SERVER_REF_FRAME_ROTATING)
+   spdata.Uvec.Rotate(gv_nz, t * server_rot_rf_omega);
+#endif
+#endif
+
+// Magnetic field is always provided
    spdata.Bvec *= unit_magnetic_server / unit_magnetic_fluid;
    spdata.Bmag *= unit_magnetic_server / unit_magnetic_fluid;
+#if defined(SERVER_REF_FRAME_ROTATING)
+   spdata.Bvec.Rotate(gv_nz, t * server_rot_rf_omega);
+#endif
+
+#if defined(SERVER_VAR_INDEX_ELE)
    spdata.Evec *= unit_electric_server / unit_electric_fluid;
+#if defined(SERVER_REF_FRAME_ROTATING)
+   spdata.Evec.Rotate(gv_nz, t * server_rot_rf_omega);
+#endif
+#endif
+#if defined(SERVER_VAR_INDEX_PTH)
    spdata.p_ther *= unit_pressure_server / unit_pressure_fluid;
+#endif
 };
 
 /*!
@@ -738,13 +787,16 @@ void ServerCartesianFront::GetGradientsInterp1(SpatialData& spdata)
             for (uvw = 0; uvw < 3; uvw++) grads[vidx][uvw] += stencil.derivatives[3 * iz + uvw] * var;
          };
 // Mass density, if provided
-#ifdef SERVER_VAR_INDEX_RHO
+#if defined(SERVER_VAR_INDEX_RHO)
          rho += stencil.weights[iz] * block_pri->GetValue(stencil.zones[iz], SERVER_VAR_INDEX_RHO);
 #endif
 // gradient of B magnitude
-         _Bmag2 = Sqr(block_pri->GetValue(stencil.zones[iz], SERVER_VAR_INDEX_MAG))
-                + Sqr(block_pri->GetValue(stencil.zones[iz], SERVER_VAR_INDEX_MAG + 1))
-                + Sqr(block_pri->GetValue(stencil.zones[iz], SERVER_VAR_INDEX_MAG + 2));
+         _Bmag2 = Sqr( block_pri->GetValue(stencil.zones[iz], SERVER_VAR_INDEX_MAG0)
+                     + block_pri->GetValue(stencil.zones[iz], SERVER_VAR_INDEX_MAG1) )
+                + Sqr( block_pri->GetValue(stencil.zones[iz], SERVER_VAR_INDEX_MAG0 + 1)
+                     + block_pri->GetValue(stencil.zones[iz], SERVER_VAR_INDEX_MAG1 + 1) )
+                + Sqr( block_pri->GetValue(stencil.zones[iz], SERVER_VAR_INDEX_MAG0 + 2)
+                     + block_pri->GetValue(stencil.zones[iz], SERVER_VAR_INDEX_MAG1 + 2) );
          for (uvw = 0; uvw < 3; uvw++) spdata.gradBmag[uvw] += stencil.derivatives[3 * iz + uvw] * sqrt(_Bmag2);
       };
    }
@@ -762,13 +814,16 @@ void ServerCartesianFront::GetGradientsInterp1(SpatialData& spdata)
             for (uvw = 0; uvw < 3; uvw++) grads[vidx][uvw] += stencil.derivatives[3 * iz + uvw] * var;
          };
 // Mass density, if provided
-#ifdef SERVER_VAR_INDEX_RHO
+#if defined(SERVER_VAR_INDEX_RHO)
          rho += stencil.weights[iz] * block_stn->GetValue(stencil.zones[iz], SERVER_VAR_INDEX_RHO);
 #endif
 // gradient of B magnitude
-         _Bmag2 = Sqr(block_stn->GetValue(stencil.zones[iz], SERVER_VAR_INDEX_MAG))
-                + Sqr(block_stn->GetValue(stencil.zones[iz], SERVER_VAR_INDEX_MAG + 1))
-                + Sqr(block_stn->GetValue(stencil.zones[iz], SERVER_VAR_INDEX_MAG + 2));
+         _Bmag2 = Sqr( block_stn->GetValue(stencil.zones[iz], SERVER_VAR_INDEX_MAG0)
+                     + block_stn->GetValue(stencil.zones[iz], SERVER_VAR_INDEX_MAG1) )
+                + Sqr( block_stn->GetValue(stencil.zones[iz], SERVER_VAR_INDEX_MAG0 + 1)
+                     + block_stn->GetValue(stencil.zones[iz], SERVER_VAR_INDEX_MAG1 + 1) )
+                + Sqr( block_stn->GetValue(stencil.zones[iz], SERVER_VAR_INDEX_MAG0 + 2)
+                     + block_stn->GetValue(stencil.zones[iz], SERVER_VAR_INDEX_MAG1 + 2) );
          for (uvw = 0; uvw < 3; uvw++) spdata.gradBmag[uvw] += stencil.derivatives[3 * iz + uvw] * sqrt(_Bmag2);
       };
    }
@@ -784,13 +839,16 @@ void ServerCartesianFront::GetGradientsInterp1(SpatialData& spdata)
             for (uvw = 0; uvw < 3; uvw++) grads[vidx][uvw] += stencil.derivatives[3 * iz + uvw] * var;
          };
 // Mass density, if provided
-#ifdef SERVER_VAR_INDEX_RHO
+#if defined(SERVER_VAR_INDEX_RHO)
          rho += stencil.weights[iz] * block_stn->GetValue(stencil.zones[iz], SERVER_VAR_INDEX_RHO);
 #endif
 // gradient of B magnitude
-         _Bmag2 = Sqr(block_stn->GetValue(stencil.zones[iz], SERVER_VAR_INDEX_MAG))
-                + Sqr(block_stn->GetValue(stencil.zones[iz], SERVER_VAR_INDEX_MAG + 1))
-                + Sqr(block_stn->GetValue(stencil.zones[iz], SERVER_VAR_INDEX_MAG + 2));
+         _Bmag2 = Sqr( block_stn->GetValue(stencil.zones[iz], SERVER_VAR_INDEX_MAG0)
+                     + block_stn->GetValue(stencil.zones[iz], SERVER_VAR_INDEX_MAG1) )
+                + Sqr( block_stn->GetValue(stencil.zones[iz], SERVER_VAR_INDEX_MAG0 + 1)
+                     + block_stn->GetValue(stencil.zones[iz], SERVER_VAR_INDEX_MAG1 + 1) )
+                + Sqr( block_stn->GetValue(stencil.zones[iz], SERVER_VAR_INDEX_MAG0 + 2)
+                     + block_stn->GetValue(stencil.zones[iz], SERVER_VAR_INDEX_MAG1 + 2) );
          for (uvw = 0; uvw < 3; uvw++) spdata.gradBmag[uvw] += stencil.derivatives[3 * iz + uvw] * sqrt(_Bmag2);
       };
    };
@@ -810,10 +868,15 @@ void ServerCartesianFront::GetGradientsInterp1(SpatialData& spdata)
 #endif
 
 // The magnetic field must be always provided
-         spdata.gradBvec[uvw][xyz] = grads[SERVER_VAR_INDEX_MAG + xyz][uvw];
+         spdata.gradBvec[uvw][xyz] = grads[SERVER_VAR_INDEX_MAG0 + xyz][uvw];
+
+// If there is a correction term, add it
+#if defined(SERVER_VAR_INDEX_MAG1)
+         spdata.gradBvec[uvw][xyz] += grads[SERVER_VAR_INDEX_MAG1 + xyz][uvw];
+#endif
 
 // Electric field, if provided
-#ifdef SERVER_VAR_INDEX_ELE
+#if defined(SERVER_VAR_INDEX_ELE)
          spdata.gradEvec[uvw][xyz] = grads[SERVER_VAR_INDEX_ELE + xyz][uvw];
 #elif !defined(SERVER_VAR_INDEX_FLO) && !(defined(SERVER_VAR_INDEX_MOM) && defined(SERVER_VAR_INDEX_RHO))
          spdata.gradEvec[uvw][xyz] = 0.0;
@@ -823,7 +886,7 @@ void ServerCartesianFront::GetGradientsInterp1(SpatialData& spdata)
    };
 
 // Electric field, if B and U provided
-#ifndef SERVER_VAR_INDEX_ELE
+#if defined(SERVER_VAR_INDEX_ELE)
 #if defined(SERVER_VAR_INDEX_FLO) || (defined(SERVER_VAR_INDEX_MOM) && defined(SERVER_VAR_INDEX_RHO))
    spdata.gradEvec = -((spdata.gradUvec ^ spdata.Bvec) + (spdata.Uvec ^ spdata.gradBvec)) / c_code;
 #endif
@@ -837,7 +900,7 @@ void ServerCartesianFront::GetGradientsInterp1(SpatialData& spdata)
 \date 07/19/2023
 \param[out] spdata Field gradients
 */
-void ServerCartesianFront::GetGradients(SpatialData& spdata)
+void ServerCartesianFront::GetGradients(double t, SpatialData& spdata)
 {
 #if SERVER_INTERP_ORDER == -1
 // Gradients must be computed numerically
@@ -856,11 +919,39 @@ void ServerCartesianFront::GetGradients(SpatialData& spdata)
 #error Unsupported interpolation order!
 #endif
 
-// Perform unit conversion for gradients
+// Pre-compute rotation matrices if server is given in rotating coordinates
+#if defined(SERVER_REF_FRAME_ROTATING)
+   GeoMatrix rot_basis = gm_unit;
+   rot_basis[0][0] = cos(t * server_rot_rf_omega);
+   rot_basis[0][1] = -sin(t * server_rot_rf_omega);
+   rot_basis[1][0] = -rot_basis[0][1];
+   rot_basis[1][1] = rot_basis[0][0];
+   GeoMatrix rot_basis_t = rot_basis;
+   rot_basis_t.Transpose();
+#endif
+
+// Perform unit conversion for gradients. Rotate gradients forward if reference frame is rotating.
+#if defined(SERVER_VAR_INDEX_FLO)
    spdata.gradUvec *= unit_velocity_server / unit_velocity_fluid;
+#if defined(SERVER_REF_FRAME_ROTATING)
+   spdata.gradUvec = rot_basis * spdata.gradUvec * rot_basis_t;
+#endif
+#endif
+
+// Magnetic field is always provided
    spdata.gradBvec *= unit_magnetic_server / unit_magnetic_fluid;
    spdata.gradBmag *= unit_magnetic_server / unit_magnetic_fluid;
+#if defined(SERVER_REF_FRAME_ROTATING)
+   spdata.gradBvec = rot_basis * spdata.gradBvec * rot_basis_t;
+   spdata.gradBmag.Rotate(gv_nz, t * server_rot_rf_omega);
+#endif
+
+#if defined(SERVER_VAR_INDEX_ELE)
    spdata.gradEvec *= unit_electric_server / unit_electric_fluid;
+#if defined(SERVER_REF_FRAME_ROTATING)
+   spdata.gradEvec = rot_basis * spdata.gradEvec * rot_basis_t;
+#endif
+#endif
 };
 
 /*!

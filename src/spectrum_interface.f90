@@ -28,7 +28,7 @@ subroutine spectrum_get_node(pos, node) bind(C)
 
    real(c_double), intent(in) :: pos(nDim)
    integer(c_int), intent(out) :: node
-   real :: CoordTree_D(nDim)
+   real(c_double) :: CoordTree_D(nDim)
 
 ! Normalize the distance to the domain size and call the tree search routine. The result is available on all CPUs.
    CoordTree_D = (pos - CoordMin_D) / (DomainSize_D)
@@ -194,8 +194,8 @@ subroutine spectrum_get_interpolation_stencil(pos, n_zones, stencil_nodes, stenc
 
    integer :: nCell, iDim, iCell, idx
    integer :: iCell_II(0 : nDim, 2**nDim)
-   real :: Xyz_D(MaxDim)
-   real :: Weight_I(2**nDim)
+   real(c_double) :: Xyz_D(MaxDim)
+   real(c_double) :: Weight_I(2**nDim)
 
    Xyz_D(1 : nDim) = pos(1 : nDim)
    ! call interpolate_grid_amr(Xyz_D, nCell, iCell_II, Weight_I)

@@ -87,7 +87,8 @@ void BackgroundServer::EvaluateBackground(void)
 void BackgroundServer::EvaluateBackgroundDerivatives(void)
 {
 #ifdef NEED_SERVER
-   server_front->GetGradients(_spdata);
+   // server_front->GetGradients(_t, _spdata);
+   NumericalDerivatives();
 #endif
    if (BITS_RAISED(_spdata._mask, BACKGROUND_grad_FAIL)) NumericalDerivatives();
 };

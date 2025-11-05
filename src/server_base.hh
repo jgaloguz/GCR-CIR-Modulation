@@ -23,48 +23,63 @@ namespace Spectrum {
 // #define SERVER_VAR_INDEX_RHO 0
 
 //! Index of the number density variable
-// #define SERVER_VAR_INDEX_DEN 0
+#define SERVER_VAR_INDEX_DEN 0
 
 //! Index of the momentum variable
-//#define SERVER_VAR_INDEX_MOM 1
+// #define SERVER_VAR_INDEX_MOM 1
 
 //! Index of the bulk flow variable
-#define SERVER_VAR_INDEX_FLO 0
+#define SERVER_VAR_INDEX_FLO 1
 
 //! Index of the magnetic field variable
-#define SERVER_VAR_INDEX_MAG 3
+#define SERVER_VAR_INDEX_MAG0 4
+
+//! Index of the magnetic field correction variable
+#define SERVER_VAR_INDEX_MAG1 7
 
 //! Index of the electric field variable
-#define SERVER_VAR_INDEX_ELE 6
+// #define SERVER_VAR_INDEX_ELE 6
 
 //! Index and number of the regions variable
-// #define SERVER_VAR_INDEX_REG 7
-// #define SERVER_NUM_INDEX_REG 2
+#define SERVER_VAR_INDEX_REG 10
+#define SERVER_NUM_INDEX_REG 3
 
 //! Index of thermal pressure
-// #define SERVER_VAR_INDEX_PTH 9
+#define SERVER_VAR_INDEX_PTH 14
+
+//! Flag to indicate a rotating reference frame
+#define SERVER_REF_FRAME_ROTATING
 
 //! Unit of length
-const double unit_length_server = unit_length_fluid;
+// const double unit_length_server = unit_length_fluid;
 // const double unit_length_server = 1.4959787e+13;
+const double unit_length_server = 6.957e+10;
 
 //! Unit of number density
-const double unit_number_density_server = 1.0;
+// const double unit_number_density_server = 1.0;
+const double unit_number_density_server = 6.022e26;
 
 //! Unit of velocity
-const double unit_velocity_server = unit_velocity_fluid;
-// const double unit_velocity_server = 1.0E5;
+// const double unit_velocity_server = unit_velocity_fluid;
+const double unit_velocity_server = 1.0E5;
 
 //! Unit of magnetic field
-const double unit_magnetic_server = unit_magnetic_fluid;
+// const double unit_magnetic_server = unit_magnetic_fluid;
 // const double unit_magnetic_server = 1.0E-5;
+const double unit_magnetic_server = 1.0;
 
 //! Unit of electric field
-const double unit_electric_server = unit_electric_fluid;
-// const double unit_electric_server = unit_velocity_server * unit_magnetic_server / unit_velocity_fluid;
+// const double unit_electric_server = unit_electric_fluid;
+const double unit_electric_server = unit_velocity_server * unit_magnetic_server / unit_velocity_fluid;
 
 //! Unit of pressure
 const double unit_pressure_server = 1.0;
+
+//! Unit of temperature
+const double unit_temperature_server = 1.0;
+
+//! Angular velocity of rotating reference frame
+const double server_rot_rf_omega = M_2PI / (27.0 * 24.0 * 60.0 * 60.0) / unit_frequency_fluid;
 
 //! MPI tag for "need block" message (W->B)
 const int tag_needblock = 1001;
@@ -259,7 +274,7 @@ public:
    virtual void GetVariables(double t, const GeoVector& pos, SpatialData& spdata) = 0;
 
 //! Obtain the gradients
-   virtual void GetGradients(SpatialData& spdata) = 0;
+   virtual void GetGradients(double t, SpatialData& spdata) = 0;
 #endif
 
 };

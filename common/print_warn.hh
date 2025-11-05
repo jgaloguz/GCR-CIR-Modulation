@@ -29,13 +29,13 @@ namespace Spectrum {
 #define line_width 1000
 
 //! Color of error messages (red)
-inline constexpr const std::string err_color = "\033[31m";
+inline const std::string err_color = "\033[31m";
 
 //! Color of informational messages (green)
-inline constexpr const std::string inf_color = "\033[32m";
+inline const std::string inf_color = "\033[32m";
 
 //! Color of normal messages (default)
-inline constexpr const std::string std_color = "\033[0m";
+inline const std::string std_color = "\033[0m";
 
 /*!
 \brief Print an error message in color

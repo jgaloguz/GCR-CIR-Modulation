@@ -154,13 +154,13 @@ public:
    void GetVariables(double t, const GeoVector& pos, SpatialData& spdata) override;
 
 //! Obtain the gradients
-   void GetGradients(SpatialData& spdata) override;
+   void GetGradients(double t, SpatialData& spdata) override;
 #else
 //! Obtain the variables
    void GetVariables(double t, const GeoVector& pos, SpatialData& spdata);
 
 //! Obtain the gradients
-   void GetGradients(SpatialData& spdata);
+   void GetGradients(double t, SpatialData& spdata);
 #endif
 
 //! Print how many times internal/external interpolators were used

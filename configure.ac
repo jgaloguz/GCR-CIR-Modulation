@@ -252,7 +252,7 @@ AS_IF([test "x$enable_cuda" == "xyes"], [
 ])
 
 # Files to generate
-AC_CONFIG_FILES([Makefile runs/Makefile tests/Makefile benchmarks/Makefile])
+AC_CONFIG_FILES([Makefile runs/Makefile])
 
 AC_OUTPUT
 
