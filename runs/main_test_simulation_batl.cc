@@ -54,7 +54,7 @@ int main(int argc, char** argv)
    container.Insert(dmax);
 
 // Name of file with MHD results
-   std::string cir_date;
+   std::string cir_date = "";
    if (argc > 3) {
       cir_date = argv[3];
       if (MPI_Config::is_master) std::cout << "CIR date: " << cir_date << std::endl;
@@ -75,6 +75,12 @@ int main(int argc, char** argv)
 
 // Initial time
    double init_t = 0.0;
+   double one_day = 60.0 * 60.0 * 24.0 / unit_time_fluid;
+   std::string init_time = "0.0";
+   if (argc > 4) {
+      init_time = argv[4];
+      init_t = atof(argv[4]) * one_day;
+   };
    container.Insert(init_t);
 
    simulation->AddInitial(InitialTimeFixed(), container);
@@ -131,7 +137,7 @@ int main(int argc, char** argv)
    container.Insert(gv_zeros);
 
 // Radius
-   double inner_boundary = 0.01 * GSL_CONST_CGSM_ASTRONOMICAL_UNIT / unit_length_fluid;
+   double inner_boundary = 0.1 * GSL_CONST_CGSM_ASTRONOMICAL_UNIT / unit_length_fluid;
    container.Insert(inner_boundary);
 
    simulation->AddBoundary(BoundarySphereAbsorb(), container);
@@ -178,7 +184,6 @@ int main(int argc, char** argv)
    container.Insert(actions_time);
    
 // Max duration of the trajectory
-   double one_day = 60.0 * 60.0 * 24.0 / unit_time_fluid;
    double maxtime = -one_day * 365.0;
    container.Insert(maxtime);
 
@@ -244,7 +249,7 @@ int main(int argc, char** argv)
    container.Insert(bin_outside1);
 
 // Physical units of the distro variable
-   double unit_distro1 = 1.0 / (Sqr(unit_length_fluid) * unit_time_fluid * M_4PI * unit_energy_particle);
+   double unit_distro1 = 1.0;
    container.Insert(unit_distro1);
 
 // Physical units of the bin variable
@@ -256,22 +261,34 @@ int main(int argc, char** argv)
    container.Insert(keep_records1);
 
 // Normalization for the "hot" boundary
-   double J0 = 1.0 / unit_distro1;
+   double J0 = 20.4;
    container.Insert(J0);
 
-// Characteristic energy
-   double T0 = 1.0 * SPC_CONST_CGSM_GIGA_ELECTRON_VOLT / unit_energy_particle;
+//! Characteristic energy
+   double T0 = SPC_CONST_CGSM_GIGA_ELECTRON_VOLT / unit_energy_particle;
    container.Insert(T0);
 
-// Spectral power law
-   double pow_law_T = -1.8;
+//! Spectral power law
+   double pow_law_T = 0.986;
    container.Insert(pow_law_T);
 
-// Constant value for the "cold" condition
+//! Constant value for the "cold" condition
    double val_cold1 = 0.0;
    container.Insert(val_cold1);
 
-   simulation->AddDistribution(DistributionSpectrumKineticEnergyPowerLaw(), container);
+//! Bendover energy
+   double Tb = 1.01 * T0;
+   container.Insert(Tb);
+
+//! Spectral power law after bend
+   double pow_law_Tb = -2.81;
+   container.Insert(pow_law_Tb);
+
+//! Smoothness of bend
+   double bend_smooth = 3.98;
+   container.Insert(bend_smooth);
+
+   simulation->AddDistribution(DistributionSpectrumKineticEnergyBentPowerLaw(), container);
 
 //----------------------------------------------------------------------------------------------------------------------------------------------------
 // Distribution 2 (exit time)
@@ -285,11 +302,11 @@ int main(int argc, char** argv)
    container.Insert(n_bins2);
 
 // Smallest value
-   GeoVector minval2(-one_day * 30.0, 0.0, 0.0);
+   GeoVector minval2(init_t - 30.0 * one_day, 0.0, 0.0);
    container.Insert(minval2);
 
 // Largest value
-   GeoVector maxval2(0.0, 0.0, 0.0);
+   GeoVector maxval2(init_t, 0.0, 0.0);
    container.Insert(maxval2);
 
 // Linear or logarithmic bins
@@ -337,12 +354,13 @@ int main(int argc, char** argv)
    if(argc > 1) n_traj = atoi(argv[1]);
    if(argc > 2) batch_size = atoi(argv[2]);
 
-   std::string simulation_files_prefix = "gcr_modulation_example_distro_";
+   std::string simulation_files_prefix = "output_" + cir_date
+                                       + "/cir_gcr_mod_"
+                                       + init_time
+                                       + "_distro_";
    simulation->DistroFileName(simulation_files_prefix);
    simulation->SetTasks(n_traj, batch_size);
    simulation->MainLoop();
-   simulation->PrintDistro1D(0, 0, "modulated_gcr_spectrum.dat", true);
-   simulation->PrintDistro1D(1, 0, "time_gcr_trajec.dat", true);
    
    return 0;
 };

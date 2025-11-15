@@ -748,6 +748,13 @@ void ServerCartesianFront::GetVariables(double t, const GeoVector& pos, SpatialD
 // Magnetic field is always provided
    spdata.Bvec *= unit_magnetic_server / unit_magnetic_fluid;
    spdata.Bmag *= unit_magnetic_server / unit_magnetic_fluid;
+
+#if defined(SERVER_CORRECT_MAG)
+// Modify magnetic field magnitude
+   static double one_au = (GSL_CONST_CGSM_ASTRONOMICAL_UNIT / unit_length_fluid);
+   spdata.Bmag += dB_server * Sqr(one_au / pos_rot.Norm());
+#endif
+
 #if defined(SERVER_REF_FRAME_ROTATING)
    spdata.Bvec.Rotate(gv_nz, t * server_rot_rf_omega);
 #endif

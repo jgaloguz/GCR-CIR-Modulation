@@ -27,7 +27,7 @@ This file is part of the SPECTRUM suite of scientific numerical simulation codes
 #endif
 
 //! Number of bosses per physical node
-#define N_BOSSES_PER_NODE 1
+#define N_BOSSES_PER_NODE 2
 
 #if SERVER_TYPE == SERVER_SELF
 #define ALLOW_BOSS_WORKER

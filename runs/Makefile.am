@@ -6,7 +6,8 @@ BATL_HOME = ../../BATL
 AM_FCFLAGS = -J$(BATL_HOME)/share/include
 
 bin_PROGRAMS = main_test_background_batl main_test_fieldline_batl \
-               main_test_simulation_batl
+               main_test_simulation_batl main_test_process_spectrum \
+               main_test_process_time main_test_integrate_spectra_one_rotation
 
 SPBL_COMMON_DIR = ../common
 SPBL_SOURCE_DIR = ../src
@@ -227,3 +228,72 @@ main_test_simulation_batl_SOURCES = main_test_simulation_batl.cc \
    $(SPBL_COMMON_DIR)/print_warn.hh
 
 main_test_simulation_batl_LDADD = -L$(BATL_HOME)/lib -lREADAMR -lTIMING -lSHARE -lgfortran -lmpi_mpifh -lgsl -lgslcblas
+
+main_test_process_spectrum_SOURCES = main_test_process_spectrum.cc \
+   $(SPBL_SOURCE_DIR)/distribution_other.cc \
+   $(SPBL_SOURCE_DIR)/distribution_other.hh \
+   $(SPBL_SOURCE_DIR)/distribution_templated.cc \
+   $(SPBL_SOURCE_DIR)/distribution_templated.hh \
+   $(SPBL_SOURCE_DIR)/distribution_base.cc \
+   $(SPBL_SOURCE_DIR)/distribution_base.hh \
+   $(SPBL_COMMON_DIR)/matrix.cc \
+   $(SPBL_COMMON_DIR)/matrix.hh \
+   $(SPBL_COMMON_DIR)/vectors.cc \
+   $(SPBL_COMMON_DIR)/vectors.hh \
+   $(SPBL_COMMON_DIR)/params.cc \
+   $(SPBL_COMMON_DIR)/params.hh \
+   $(SPBL_COMMON_DIR)/physics.cc \
+   $(SPBL_COMMON_DIR)/physics.hh \
+   $(SPBL_COMMON_DIR)/data_container.hh \
+   $(SPBL_COMMON_DIR)/data_container.cc \
+   $(SPBL_COMMON_DIR)/multi_index.hh \
+   $(SPBL_COMMON_DIR)/simple_array.hh \
+   $(SPBL_COMMON_DIR)/arithmetic.hh \
+   $(SPBL_COMMON_DIR)/definitions.hh \
+   $(SPBL_COMMON_DIR)/print_warn.hh
+
+main_test_process_spectrum_LDADD = $(MPI_LIBS) $(GSL_LIBS)
+
+main_test_process_time_SOURCES = main_test_process_time.cc \
+   $(SPBL_SOURCE_DIR)/distribution_other.cc \
+   $(SPBL_SOURCE_DIR)/distribution_other.hh \
+   $(SPBL_SOURCE_DIR)/distribution_templated.cc \
+   $(SPBL_SOURCE_DIR)/distribution_templated.hh \
+   $(SPBL_SOURCE_DIR)/distribution_base.cc \
+   $(SPBL_SOURCE_DIR)/distribution_base.hh \
+   $(SPBL_COMMON_DIR)/matrix.cc \
+   $(SPBL_COMMON_DIR)/matrix.hh \
+   $(SPBL_COMMON_DIR)/vectors.cc \
+   $(SPBL_COMMON_DIR)/vectors.hh \
+   $(SPBL_COMMON_DIR)/params.cc \
+   $(SPBL_COMMON_DIR)/params.hh \
+   $(SPBL_COMMON_DIR)/physics.cc \
+   $(SPBL_COMMON_DIR)/physics.hh \
+   $(SPBL_COMMON_DIR)/data_container.hh \
+   $(SPBL_COMMON_DIR)/data_container.cc \
+   $(SPBL_COMMON_DIR)/multi_index.hh \
+   $(SPBL_COMMON_DIR)/simple_array.hh \
+   $(SPBL_COMMON_DIR)/arithmetic.hh \
+   $(SPBL_COMMON_DIR)/definitions.hh \
+   $(SPBL_COMMON_DIR)/print_warn.hh
+
+main_test_process_time_LDADD = $(MPI_LIBS) $(GSL_LIBS)
+
+main_test_integrate_spectra_one_rotation_SOURCES = main_test_integrate_spectra_one_rotation.cc \
+   $(SPBL_COMMON_DIR)/matrix.cc \
+   $(SPBL_COMMON_DIR)/matrix.hh \
+   $(SPBL_COMMON_DIR)/vectors.cc \
+   $(SPBL_COMMON_DIR)/vectors.hh \
+   $(SPBL_COMMON_DIR)/params.cc \
+   $(SPBL_COMMON_DIR)/params.hh \
+   $(SPBL_COMMON_DIR)/physics.cc \
+   $(SPBL_COMMON_DIR)/physics.hh \
+   $(SPBL_COMMON_DIR)/data_container.hh \
+   $(SPBL_COMMON_DIR)/data_container.cc \
+   $(SPBL_COMMON_DIR)/multi_index.hh \
+   $(SPBL_COMMON_DIR)/simple_array.hh \
+   $(SPBL_COMMON_DIR)/arithmetic.hh \
+   $(SPBL_COMMON_DIR)/definitions.hh \
+   $(SPBL_COMMON_DIR)/print_warn.hh
+
+main_test_integrate_spectra_one_rotation_LDADD = $(MPI_LIBS) $(GSL_LIBS)
