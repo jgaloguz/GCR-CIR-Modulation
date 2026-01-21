@@ -42,7 +42,7 @@ namespace Spectrum {
 #define SERVER_REF_FRAME_ROTATING
 
 //! Flag to indicate (magnitude) correction to magnetic field
-// #define SERVER_CORRECT_MAG 
+#define SERVER_CORRECT_MAG 
 
 //! Unit of length
 const double unit_length_server = 6.957e+10;
@@ -69,7 +69,7 @@ const double unit_temperature_server = 1.0;
 const double server_rot_rf_omega = M_2PI / (27.0 * 24.0 * 60.0 * 60.0) / unit_frequency_fluid;
 
 //! Magnetic field correction
-const double dB_server = 0.1 * 1.0e-5 / unit_magnetic_fluid;
+const double dB_server = 1.0 * 1.0e-5 / unit_magnetic_fluid;
 
 //! MPI tag for "need block" message (W->B)
 const int tag_needblock = 1001;

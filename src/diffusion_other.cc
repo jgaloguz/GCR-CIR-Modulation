@@ -1072,4 +1072,71 @@ double DiffusionEmpiricalSOQLTandUNLT::GetMuDerivative(void)
    return 0.0;
 };
 
+//----------------------------------------------------------------------------------------------------------------------------------------------------
+// DiffusionRigidityMagneticFieldPowerLawWithMagneticVariance methods
+//----------------------------------------------------------------------------------------------------------------------------------------------------
+
+/*!
+\author Juan G Alonso Guzman
+\date 01/06/2026
+*/
+DiffusionRigidityMagneticFieldPowerLawWithMagneticVariance::DiffusionRigidityMagneticFieldPowerLawWithMagneticVariance(void)
+                                                          : DiffusionBase(diff_name_rigidity_magnetic_field_power_law_with_magnetic_variance, 0, STATE_NONE)
+{
+};
+
+/*!
+\author Juan G Alonso Guzman
+\date 01/06/2026
+\param[in] other Object to initialize from
+
+A copy constructor should first first call the Params' version to copy the data container and then check whether the other object has been set up. If yes, it should simply call the virtual method "SetupDiffusion()" with the argument of "true".
+*/
+DiffusionRigidityMagneticFieldPowerLawWithMagneticVariance::DiffusionRigidityMagneticFieldPowerLawWithMagneticVariance(const DiffusionRigidityMagneticFieldPowerLawWithMagneticVariance& other)
+                                      : DiffusionBase(other)
+{
+   RAISE_BITS(_status, STATE_NONE);
+   if (BITS_RAISED(other._status, STATE_SETUP_COMPLETE)) SetupDiffusion(true);
+};
+
+/*!
+\author Juan G Alonso Guzman
+\date 01/06/2026
+\param [in] construct Whether called from a copy constructor or separately
+
+This method's main role is to unpack the data container and set up the class data members and status bits marked as "persistent". The function should assume that the data container is available because the calling function will always ensure this.
+*/
+void DiffusionRigidityMagneticFieldPowerLawWithMagneticVariance::SetupDiffusion(bool construct)
+{
+// The parent version must be called explicitly if not constructing
+   if (!construct) DiffusionBase::SetupDiffusion(false);
+   container.Read(lam0);
+   container.Read(R0);
+   container.Read(B0);
+   container.Read(pow_law_R);
+   container.Read(pow_law_B);
+   container.Read(kap_rat);
+};
+
+/*!
+\author Juan G Alonso Guzman
+\date 01/06/2026
+*/
+void DiffusionRigidityMagneticFieldPowerLawWithMagneticVariance::EvaluateDiffusion(void)
+{
+   if (comp_eval == 2) return;
+   Kappa[1] = (lam0 * vmag / 3.0) * pow(Rigidity(_mom[0], specie) / R0, pow_law_R) * pow(_spdata.Bmag / B0, pow_law_B);
+   Kappa[0] = kap_rat * Kappa[1] * (_spdata.region[1]+_spdata.region[2]) / Sqr(unit_magnetic_fluid * _spdata.Bmag);
+};
+
+/*!
+\author Juan G Alonso Guzman
+\date 01/06/2026
+\return double       Derivative in mu
+*/
+double DiffusionRigidityMagneticFieldPowerLawWithMagneticVariance::GetMuDerivative(void)
+{
+   return 0.0;
+};
+
 };

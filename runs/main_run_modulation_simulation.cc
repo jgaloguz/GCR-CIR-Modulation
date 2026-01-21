@@ -9,6 +9,7 @@
 #include "src/initial_momentum.hh"
 #include <iostream>
 #include <iomanip>
+#include <filesystem>
 
 using namespace Spectrum;
 
@@ -16,23 +17,23 @@ int main(int argc, char** argv)
 {
    DataContainer container;
 
-//----------------------------------------------------------------------------------------------------------------------------------------------------
+//--------------------------------------------------------------------------------
 // Create a simulation object
-//----------------------------------------------------------------------------------------------------------------------------------------------------
+//--------------------------------------------------------------------------------
 
    std::unique_ptr<SimulationWorker> simulation;
    simulation = CreateSimulation(argc, argv);
 
-//----------------------------------------------------------------------------------------------------------------------------------------------------
+//--------------------------------------------------------------------------------
 // Particle type
-//----------------------------------------------------------------------------------------------------------------------------------------------------
+//--------------------------------------------------------------------------------
 
    int specie = SPECIES_PROTON_BEAM;
    simulation->SetSpecie(specie);
 
-//----------------------------------------------------------------------------------------------------------------------------------------------------
+//--------------------------------------------------------------------------------
 // Background
-//----------------------------------------------------------------------------------------------------------------------------------------------------
+//--------------------------------------------------------------------------------
 
    container.Clear();
 
@@ -57,7 +58,13 @@ int main(int argc, char** argv)
    std::string cir_date = "";
    if (argc > 3) {
       cir_date = argv[3];
-      if (MPI_Config::is_master) std::cout << "CIR date: " << cir_date << std::endl;
+      if (MPI_Config::is_master) {
+         std::cout << "CIR date: " << cir_date << std::endl;
+         std::cout << "Number of servers: " << MPI_Config::boss_comm_size-1 << std::endl;
+         std::cout << "Number of workers: " << MPI_Config::n_workers << std::endl;
+         std::filesystem::create_directory("output_" + cir_date);
+         std::filesystem::create_directory("output_" + cir_date + "/GCR");
+      };
    } else {
       if (MPI_Config::is_master) std::cout << "ERROR: No CIR date provided." << std::endl;
       exit(1);
@@ -67,9 +74,9 @@ int main(int argc, char** argv)
 
    simulation->AddBackground(BackgroundServerBATL(), container, fname_pattern);
 
-//----------------------------------------------------------------------------------------------------------------------------------------------------
+//--------------------------------------------------------------------------------
 // Time initial condition
-//----------------------------------------------------------------------------------------------------------------------------------------------------
+//--------------------------------------------------------------------------------
 
    container.Clear();
 
@@ -85,9 +92,9 @@ int main(int argc, char** argv)
 
    simulation->AddInitial(InitialTimeFixed(), container);
 
-//----------------------------------------------------------------------------------------------------------------------------------------------------
+//--------------------------------------------------------------------------------
 // Spatial initial condition
-//----------------------------------------------------------------------------------------------------------------------------------------------------
+//--------------------------------------------------------------------------------
 
    container.Clear();
 
@@ -97,9 +104,9 @@ int main(int argc, char** argv)
 
    simulation->AddInitial(InitialSpaceFixed(), container);
 
-//----------------------------------------------------------------------------------------------------------------------------------------------------
+//--------------------------------------------------------------------------------
 // Momentum initial condition
-//----------------------------------------------------------------------------------------------------------------------------------------------------
+//--------------------------------------------------------------------------------
 
    container.Clear();
 
@@ -117,9 +124,9 @@ int main(int argc, char** argv)
 
    simulation->AddInitial(InitialMomentumThickShell(), container);
 
-//----------------------------------------------------------------------------------------------------------------------------------------------------
+//--------------------------------------------------------------------------------
 // Inner boundary
-//----------------------------------------------------------------------------------------------------------------------------------------------------
+//--------------------------------------------------------------------------------
 
    container.Clear();
 
@@ -140,11 +147,11 @@ int main(int argc, char** argv)
    double inner_boundary = 0.1 * GSL_CONST_CGSM_ASTRONOMICAL_UNIT / unit_length_fluid;
    container.Insert(inner_boundary);
 
-   simulation->AddBoundary(BoundarySphereAbsorb(), container);
+   simulation->AddBoundary(BoundarySphereReflect(), container);
 
-//----------------------------------------------------------------------------------------------------------------------------------------------------
+//--------------------------------------------------------------------------------
 // Outer boundary
-//----------------------------------------------------------------------------------------------------------------------------------------------------
+//--------------------------------------------------------------------------------
 
    container.Clear();
 
@@ -167,13 +174,13 @@ int main(int argc, char** argv)
 
    simulation->AddBoundary(BoundarySphereAbsorb(), container);
 
-//----------------------------------------------------------------------------------------------------------------------------------------------------
+//--------------------------------------------------------------------------------
 // Time limit
-//----------------------------------------------------------------------------------------------------------------------------------------------------
+//--------------------------------------------------------------------------------
 
    container.Clear();
 
-// Not needed because this class sets the value to -1
+// Max crossings
    int max_crossings_time = 1;
    container.Insert(max_crossings_time);
 
@@ -189,14 +196,14 @@ int main(int argc, char** argv)
 
    simulation->AddBoundary(BoundaryTimeExpire(), container);
 
-//----------------------------------------------------------------------------------------------------------------------------------------------------
+//--------------------------------------------------------------------------------
 // Diffusion model
-//----------------------------------------------------------------------------------------------------------------------------------------------------
+//--------------------------------------------------------------------------------
 
    container.Clear();
 
 // Parallel mean free path
-   double lam0 = 0.1 * GSL_CONST_CGSM_ASTRONOMICAL_UNIT / unit_length_fluid;
+   double lam0 = 1.5 * GSL_CONST_CGSM_ASTRONOMICAL_UNIT / unit_length_fluid;
    container.Insert(lam0);
 
 // Rigidity normalization factor
@@ -215,16 +222,16 @@ int main(int argc, char** argv)
    double pow_law_B = -1.0;
    container.Insert(pow_law_B);
 
-// Ratio of kappa_perp to kappa_para
-   double kap_rat = 0.05;
+// Scaling constant (~0.5 * a^2 * 4)
+   double kap_rat = 0.15;
    container.Insert(kap_rat);
 
 // Pass ownership of "diffusion" to simulation
-   simulation->AddDiffusion(DiffusionRigidityMagneticFieldPowerLaw(), container);
+   simulation->AddDiffusion(DiffusionRigidityMagneticFieldPowerLawWithMagneticVariance(), container);
 
-//----------------------------------------------------------------------------------------------------------------------------------------------------
+//--------------------------------------------------------------------------------
 // Distribution 1 (spectrum)
-//----------------------------------------------------------------------------------------------------------------------------------------------------
+//--------------------------------------------------------------------------------
 
    container.Clear();
 
@@ -261,7 +268,7 @@ int main(int argc, char** argv)
    container.Insert(keep_records1);
 
 // Normalization for the "hot" boundary
-   double J0 = 20.4;
+   double J0 = 18.6;
    container.Insert(J0);
 
 //! Characteristic energy
@@ -269,7 +276,7 @@ int main(int argc, char** argv)
    container.Insert(T0);
 
 //! Spectral power law
-   double pow_law_T = 0.986;
+   double pow_law_T = 0.987;
    container.Insert(pow_law_T);
 
 //! Constant value for the "cold" condition
@@ -277,7 +284,7 @@ int main(int argc, char** argv)
    container.Insert(val_cold1);
 
 //! Bendover energy
-   double Tb = 1.01 * T0;
+   double Tb = 1.04 * T0;
    container.Insert(Tb);
 
 //! Spectral power law after bend
@@ -285,14 +292,14 @@ int main(int argc, char** argv)
    container.Insert(pow_law_Tb);
 
 //! Smoothness of bend
-   double bend_smooth = 3.98;
+   double bend_smooth = 3.97;
    container.Insert(bend_smooth);
 
    simulation->AddDistribution(DistributionSpectrumKineticEnergyBentPowerLaw(), container);
 
-//----------------------------------------------------------------------------------------------------------------------------------------------------
+//--------------------------------------------------------------------------------
 // Distribution 2 (exit time)
-//----------------------------------------------------------------------------------------------------------------------------------------------------
+//--------------------------------------------------------------------------------
 
 // Parameters for distribution
    container.Clear();
@@ -343,9 +350,9 @@ int main(int argc, char** argv)
 
    simulation->AddDistribution(DistributionTimeUniform(), container);
 
-//----------------------------------------------------------------------------------------------------------------------------------------------------
+//--------------------------------------------------------------------------------
 // Run the simulation
-//----------------------------------------------------------------------------------------------------------------------------------------------------
+//--------------------------------------------------------------------------------
 
    int n_traj;
    int batch_size;
@@ -355,9 +362,8 @@ int main(int argc, char** argv)
    if(argc > 2) batch_size = atoi(argv[2]);
 
    std::string simulation_files_prefix = "output_" + cir_date
-                                       + "/cir_gcr_mod_"
-                                       + init_time
-                                       + "_distro_";
+                                       + "/GCR/cir_gcr_mod_"
+                                       + init_time + "_distro_";
    simulation->DistroFileName(simulation_files_prefix);
    simulation->SetTasks(n_traj, batch_size);
    simulation->MainLoop();

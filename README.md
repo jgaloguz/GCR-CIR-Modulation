@@ -10,9 +10,9 @@ Before first use, the code must be configured with autotools. After cloning this
 ```
 git clone https://github.com/jgaloguz/GCR-CIR-Modulation
 cd GCR-CIR-Modulation
-./configure.sh <mpi-option>
+./configure.sh <mpi-option> <run-type>
 ```
-where `<mpi-option>` is either `openmpi` or `mpich`, whichever is installed in your system. You may have to change the permissions of `configure.sh` before you can execute it. You will know the configuration stage ran successfully if a `config.h` file was generated in the working directory.
+where `<mpi-option>` is either `openmpi` or `mpich`, whichever is installed in your system, and `<run-type>` is either `sim` for running modulation simulations or `plot` for running visualization scripts on the MHD results. You may have to change the permissions of `configure.sh` before you can execute it. You will know the configuration stage ran successfully if a `config.h` file was generated in the working directory.
 
 If the configuration stage runs successfully, you can compile and run codes in the `runs` folder. To compile the code, simply use
 ```

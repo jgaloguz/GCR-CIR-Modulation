@@ -802,6 +802,69 @@ public:
    double GetMuDerivative(void) override;
 };
 
+//----------------------------------------------------------------------------------------------------------------------------------------------------
+// DiffusionRigidityMagneticFieldPowerLawWithMagneticVariance class declaration
+//----------------------------------------------------------------------------------------------------------------------------------------------------
+
+//! Readable name of the DiffusionRigidityMagneticFieldPowerLawWithMagneticVariance class
+const std::string diff_name_rigidity_magnetic_field_power_law_with_magnetic_variance = "DiffusionRigidityMagneticFieldPowerLawWithMagneticVariance";
+
+/*!
+\brief Full (perpendicular + parallel) diffusion, rigidity and magnetic field power law plus magnetic variance input
+\author Juan G Alonso Guzman
+\author Vladimir Florinski
+
+Parameters: (DiffusionBase), double lam0, double R0, double B0, double pow_law_R, double pow_law_B, double kap_rat
+*/
+class DiffusionRigidityMagneticFieldPowerLawWithMagneticVariance : public DiffusionBase {
+
+protected:
+
+//! Parallel mean free path (persistent)
+   double lam0;
+
+//! Rigidity normalization factor (persistent)
+   double R0;
+
+//! Magnetic field normalization factor (persistent)
+   double B0;
+
+//! Power law slope for rigidity (persistent)
+   double pow_law_R;
+
+//! Power law slope for magnetic field (persistent)
+   double pow_law_B;
+
+//! Ratio of perpendicular to parallel diffusion (persistent)
+   double kap_rat;
+
+//! Set up the diffusion model based on "params"
+   void SetupDiffusion(bool construct) override;
+
+//! Compute the diffusion coefficients
+   void EvaluateDiffusion(void) override;
+
+public:
+
+//! Default constructor
+   DiffusionRigidityMagneticFieldPowerLawWithMagneticVariance(void);
+
+//! Copy constructor
+   DiffusionRigidityMagneticFieldPowerLawWithMagneticVariance(const DiffusionRigidityMagneticFieldPowerLawWithMagneticVariance& other);
+
+//! Destructor
+   ~DiffusionRigidityMagneticFieldPowerLawWithMagneticVariance() override = default;
+
+//! Clone function
+   CloneFunctionDiffusion(DiffusionRigidityMagneticFieldPowerLawWithMagneticVariance);
+
+//! Compute derivative of diffusion coefficient in position or time
+   // double GetDirectionalDerivative(int xyz) override;
+
+//! Compute derivative of diffusion coefficient in mu
+   double GetMuDerivative(void) override;
+};
+
 };
 
 #endif

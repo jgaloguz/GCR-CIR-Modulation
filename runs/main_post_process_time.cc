@@ -4,6 +4,7 @@
 #include <iostream>
 #include <iomanip>
 #include <cmath>
+#include <filesystem>
 
 using namespace Spectrum;
 
@@ -13,9 +14,9 @@ int main(int argc, char** argv)
    if(argc > 1) cir_date = argv[1];
    std::string init_time;
    if(argc > 2) init_time = argv[2];
-   std::string distroname = "output_" + cir_date + "/cir_gcr_mod_" + init_time + "_distro_1.out";
-   std::string infilename = "output_" + cir_date + "/cir_gcr_mod_" + init_time + "_time.dat";
-   std::string outfilename = "output_" + cir_date + "/cir_gcr_mod_" + init_time + "_time_pp.dat";
+   std::string distroname = "output_" + cir_date + "/GCR/cir_gcr_mod_" + init_time + "_distro_1.out";
+   std::string infilename = "output_" + cir_date + "/GCR/cir_gcr_mod_" + init_time + "_time.dat";
+   std::string outfilename = "output_" + cir_date + "/GCR/cir_gcr_mod_" + init_time + "_time_pp.dat";
    std::string line;
    int i, N = 100;
    int sum_c[N], total_c = 0;
@@ -58,6 +59,10 @@ int main(int argc, char** argv)
 
 // Close output distro file
    output_spectrum_file.close();
+
+// Delete distro and input files
+   std::filesystem::remove(distroname);
+   std::filesystem::remove(infilename);
 
    return 0;
 };

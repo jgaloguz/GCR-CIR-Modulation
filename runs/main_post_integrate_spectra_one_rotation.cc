@@ -7,13 +7,13 @@
 
 using namespace Spectrum;
 
-const double J0 = 20.4;
-const double mu0 = 0.986;
+const double J0 = 18.6;
+const double mu0 = 0.987;
 const double T0 = 1000.0;
-const double Tb = 1.01 * T0;
+const double Tb = 1.04 * T0;
 const double mu1 = -2.81;
-const double ds = 3.98;
-const double response = 1.68e-4;
+const double ds = 3.97;
+const double response = 1.0;
 
 // Unmodulated spectrum
 inline double unmod_spectrum(double T) {return J0 * pow(T / T0, mu0) / pow(1.0 + pow(T / Tb, (mu0-mu1)/ds), ds);};
@@ -39,7 +39,7 @@ int main(int argc, char** argv)
    std::ifstream input_spectrum_file;
    std::ofstream output_spectrum_file;
    std::string infilename;
-   std::string outfilename = "output_" + cir_date + "/cir_gcr_mod_sim_rate.dat";
+   std::string outfilename = "output_" + cir_date + "/GCR/cir_gcr_mod_sim_rate_" + cir_date + ".dat";
    double energy[n_eng], diff_int[n_eng], sum_w1[n_eng];
    double days, frac, avg_days;
    double skip;
@@ -48,7 +48,7 @@ int main(int argc, char** argv)
    output_spectrum_file.open(outfilename);
 
 // Iterate over segments endpoints
-   for(t_idx = 0; t_idx < n_time; t_idx++) {
+   for(t_idx = 0; t_idx <= n_time; t_idx++) {
 
 // Find initial time
       time_dbl = t_idx * 27.0 / n_time;
@@ -60,7 +60,7 @@ int main(int argc, char** argv)
       std::cerr << "\tInitial time " << time_str << std::endl;
 
 // Open input differential intensity file
-      infilename = "output_" + cir_date + "/cir_gcr_mod_" + time_str + "_spec_pp.dat";
+      infilename = "output_" + cir_date + "/GCR/cir_gcr_mod_" + time_str + "_spec_pp.dat";
       input_spectrum_file.open(infilename);
 
 // Read differential intensity
@@ -75,7 +75,7 @@ int main(int argc, char** argv)
       input_spectrum_file.close();
 
 // Open input time distribution file
-      infilename = "output_" + cir_date + "/cir_gcr_mod_" + time_str + "_time_pp.dat";
+      infilename = "output_" + cir_date + "/GCR/cir_gcr_mod_" + time_str + "_time_pp.dat";
       input_spectrum_file.open(infilename);
 
 // Read fraction of particles for each residence time

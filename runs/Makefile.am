@@ -5,14 +5,14 @@ AM_LDFLAGS = $(MPI_LIBS)
 BATL_HOME = ../../BATL
 AM_FCFLAGS = -J$(BATL_HOME)/share/include
 
-bin_PROGRAMS = main_test_background_batl main_test_fieldline_batl \
-               main_test_simulation_batl main_test_process_spectrum \
-               main_test_process_time main_test_integrate_spectra_one_rotation
+bin_PROGRAMS = main_plot_background_batl main_plot_fieldline_batl \
+               main_run_modulation_simulation main_post_process_spectrum \
+               main_post_process_time main_post_integrate_spectra_one_rotation
 
 SPBL_COMMON_DIR = ../common
 SPBL_SOURCE_DIR = ../src
 
-main_test_background_batl_SOURCES = main_test_background_batl.cc \
+main_plot_background_batl_SOURCES = main_plot_background_batl.cc \
    $(SPBL_SOURCE_DIR)/background_server_batl.cc \
    $(SPBL_SOURCE_DIR)/background_server_batl.hh \
    $(SPBL_SOURCE_DIR)/background_server_cartesian.cc \
@@ -21,6 +21,10 @@ main_test_background_batl_SOURCES = main_test_background_batl.cc \
    $(SPBL_SOURCE_DIR)/background_server.hh \
    $(SPBL_SOURCE_DIR)/background_base.cc \
    $(SPBL_SOURCE_DIR)/background_base.hh \
+   $(SPBL_SOURCE_DIR)/diffusion_other.cc \
+   $(SPBL_SOURCE_DIR)/diffusion_other.hh \
+   $(SPBL_SOURCE_DIR)/diffusion_base.cc \
+   $(SPBL_SOURCE_DIR)/diffusion_base.hh \
    $(SPBL_SOURCE_DIR)/server_batl.cc \
    $(SPBL_SOURCE_DIR)/server_batl.hh \
    $(SPBL_SOURCE_DIR)/server_cartesian.cc \
@@ -58,9 +62,9 @@ main_test_background_batl_SOURCES = main_test_background_batl.cc \
    $(SPBL_COMMON_DIR)/arithmetic.hh \
    $(SPBL_COMMON_DIR)/definitions.hh
 
-main_test_background_batl_LDADD = -L$(BATL_HOME)/lib -lREADAMR -lTIMING -lSHARE -lgfortran -lmpi_mpifh
+main_plot_background_batl_LDADD = -L$(BATL_HOME)/lib -lREADAMR -lTIMING -lSHARE -lgfortran -lmpi_mpifh
 
-main_test_fieldline_batl_SOURCES = main_test_fieldline_batl.cc \
+main_plot_fieldline_batl_SOURCES = main_plot_fieldline_batl.cc \
    $(SPBL_SOURCE_DIR)/trajectory_fieldline.cc \
    $(SPBL_SOURCE_DIR)/trajectory_fieldline.hh \
    $(SPBL_SOURCE_DIR)/trajectory_base.cc \
@@ -140,9 +144,9 @@ main_test_fieldline_batl_SOURCES = main_test_fieldline_batl.cc \
    $(SPBL_COMMON_DIR)/arithmetic.hh \
    $(SPBL_COMMON_DIR)/definitions.hh
 
-main_test_fieldline_batl_LDADD = -L$(BATL_HOME)/lib -lREADAMR -lTIMING -lSHARE -lgfortran -lmpi_mpifh -lgsl -lgslcblas
+main_plot_fieldline_batl_LDADD = -L$(BATL_HOME)/lib -lREADAMR -lTIMING -lSHARE -lgfortran -lmpi_mpifh -lgsl -lgslcblas
 
-main_test_simulation_batl_SOURCES = main_test_simulation_batl.cc \
+main_run_modulation_simulation_SOURCES = main_run_modulation_simulation.cc \
    $(SPBL_SOURCE_DIR)/simulation.cc \
    $(SPBL_SOURCE_DIR)/simulation.hh \
    $(SPBL_SOURCE_DIR)/trajectory_parker.cc \
@@ -227,9 +231,9 @@ main_test_simulation_batl_SOURCES = main_test_simulation_batl.cc \
    $(SPBL_COMMON_DIR)/definitions.hh \
    $(SPBL_COMMON_DIR)/print_warn.hh
 
-main_test_simulation_batl_LDADD = -L$(BATL_HOME)/lib -lREADAMR -lTIMING -lSHARE -lgfortran -lmpi_mpifh -lgsl -lgslcblas
+main_run_modulation_simulation_LDADD = -L$(BATL_HOME)/lib -lREADAMR -lTIMING -lSHARE -lgfortran -lmpi_mpifh -lgsl -lgslcblas
 
-main_test_process_spectrum_SOURCES = main_test_process_spectrum.cc \
+main_post_process_spectrum_SOURCES = main_post_process_spectrum.cc \
    $(SPBL_SOURCE_DIR)/distribution_other.cc \
    $(SPBL_SOURCE_DIR)/distribution_other.hh \
    $(SPBL_SOURCE_DIR)/distribution_templated.cc \
@@ -252,9 +256,9 @@ main_test_process_spectrum_SOURCES = main_test_process_spectrum.cc \
    $(SPBL_COMMON_DIR)/definitions.hh \
    $(SPBL_COMMON_DIR)/print_warn.hh
 
-main_test_process_spectrum_LDADD = $(MPI_LIBS) $(GSL_LIBS)
+main_post_process_spectrum_LDADD = $(MPI_LIBS) $(GSL_LIBS)
 
-main_test_process_time_SOURCES = main_test_process_time.cc \
+main_post_process_time_SOURCES = main_post_process_time.cc \
    $(SPBL_SOURCE_DIR)/distribution_other.cc \
    $(SPBL_SOURCE_DIR)/distribution_other.hh \
    $(SPBL_SOURCE_DIR)/distribution_templated.cc \
@@ -277,9 +281,9 @@ main_test_process_time_SOURCES = main_test_process_time.cc \
    $(SPBL_COMMON_DIR)/definitions.hh \
    $(SPBL_COMMON_DIR)/print_warn.hh
 
-main_test_process_time_LDADD = $(MPI_LIBS) $(GSL_LIBS)
+main_post_process_time_LDADD = $(MPI_LIBS) $(GSL_LIBS)
 
-main_test_integrate_spectra_one_rotation_SOURCES = main_test_integrate_spectra_one_rotation.cc \
+main_post_integrate_spectra_one_rotation_SOURCES = main_post_integrate_spectra_one_rotation.cc \
    $(SPBL_COMMON_DIR)/matrix.cc \
    $(SPBL_COMMON_DIR)/matrix.hh \
    $(SPBL_COMMON_DIR)/vectors.cc \
@@ -296,4 +300,4 @@ main_test_integrate_spectra_one_rotation_SOURCES = main_test_integrate_spectra_o
    $(SPBL_COMMON_DIR)/definitions.hh \
    $(SPBL_COMMON_DIR)/print_warn.hh
 
-main_test_integrate_spectra_one_rotation_LDADD = $(MPI_LIBS) $(GSL_LIBS)
+main_post_integrate_spectra_one_rotation_LDADD = $(MPI_LIBS) $(GSL_LIBS)
