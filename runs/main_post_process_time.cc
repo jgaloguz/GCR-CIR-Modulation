@@ -18,7 +18,7 @@ int main(int argc, char** argv)
    std::string infilename = "output_" + cir_date + "/GCR/cir_gcr_mod_" + init_time + "_time.dat";
    std::string outfilename = "output_" + cir_date + "/GCR/cir_gcr_mod_" + init_time + "_time_pp.dat";
    std::string line;
-   int i, N = 100;
+   int i, N = 50;
    int sum_c[N], total_c = 0;
    double time[N], distro[N], sum_w[N];
 
@@ -43,7 +43,7 @@ int main(int argc, char** argv)
       total_c += sum_c[i];
    };
 
-// Close input cartesian distro file
+// Close input distro file
    input_spectrum_file.close();
 
 // Open output distro file

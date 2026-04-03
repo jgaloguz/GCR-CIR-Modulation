@@ -54,7 +54,7 @@ int main(int argc, char** argv)
       input_spectrum_file >> sum_c[i];
    };
 
-// Close input cartesian distro file
+// Close input distro file
    input_spectrum_file.close();
 
 // Open output distro file

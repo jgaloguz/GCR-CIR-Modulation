@@ -16,8 +16,11 @@ namespace Spectrum {
 //! Which stochastic method to use for diffusion: 0 = Euler, 1 = Milstein, 2 = RK2
 #define TRAJ_PARKER_STOCHASTIC_METHOD_DIFF 0
 
-//! Flag to use gradient and curvature drifts in drift velocity calculation
+//! Flag to use gradient and curvature drifts in velocity calculation
 #define TRAJ_PARKER_USE_B_DRIFTS
+
+//! Flag to use solar wind advection in velocity calculation
+#define TRAJ_PARKER_USE_U_ADVECT
 
 //! Which method of computation to use for divK: 0 = using direct central FD, 1 = using _spdata.grad quantities
 #define TRAJ_PARKER_DIVK_METHOD 0

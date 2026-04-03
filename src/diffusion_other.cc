@@ -691,12 +691,6 @@ void DiffusionKineticEnergyRadialDistancePowerLaw::SetupDiffusion(bool construct
    container.Read(pow_law_T);
    container.Read(pow_law_r);
    container.Read(kap_rat);
-   container.Read(stream_dep_idx);
-   container.Read(u_up);
-   container.Read(w_sh);
-   container.Read(s_sh);
-
-   dn_up_rat = Sqr(1.0 / s_sh);
 };
 
 /*!
@@ -706,11 +700,8 @@ void DiffusionKineticEnergyRadialDistancePowerLaw::SetupDiffusion(bool construct
 */
 void DiffusionKineticEnergyRadialDistancePowerLaw::EvaluateDiffusion(void)
 {
-   double r = _pos.Norm();
    if (comp_eval == 2) return;
-   if (stream_dep_idx == 0 || r < r0) Kappa[1] = kap0 * pow(EnrKin(_mom[0], specie) / T0, pow_law_T) * pow(r / r0, pow_law_r);
-   else if (r < r0 + w_sh) Kappa[1] = kap0 * pow(EnrKin(_mom[0], specie) / T0, pow_law_T) * Sqr(_spdata.Uvec.Norm() / u_up);
-   else Kappa[1] = kap0 * pow(EnrKin(_mom[0], specie) / T0, pow_law_T) * dn_up_rat;
+   Kappa[1] = kap0 * pow(EnrKin(_mom[0], specie) / T0, pow_law_T) * pow(_pos.Norm() / r0, pow_law_r);
    Kappa[0] = kap_rat * Kappa[1];
 };
 
@@ -723,13 +714,9 @@ void DiffusionKineticEnergyRadialDistancePowerLaw::EvaluateDiffusion(void)
 */
 double DiffusionKineticEnergyRadialDistancePowerLaw::GetDirectionalDerivative(int xyz)
 {
-   double r = _pos.Norm();
 // Note that this doesn't work near the origin where the radial distance is close to zero.
-   if ((0 <= xyz) && (xyz <= 2)) {
-      if (stream_dep_idx == 0 || r < r0) return Kappa[comp_eval] * pow_law_r * _pos[xyz] / Sqr(r);      
-      else if (r < r0 + w_sh) return Kappa[comp_eval] * 2.0 * (_spdata.gradUvec.row[xyz] * _spdata.Uvec) / Sqr(_spdata.Uvec.Norm());
-      else return 0.0;
-   };
+   if ((0 <= xyz) && (xyz <= 2))  return Kappa[comp_eval] * pow_law_r * _pos[xyz] / Sqr(_pos.Norm());      
+   else return 0.0;
    return 0.0;
 };
 
@@ -1073,26 +1060,26 @@ double DiffusionEmpiricalSOQLTandUNLT::GetMuDerivative(void)
 };
 
 //----------------------------------------------------------------------------------------------------------------------------------------------------
-// DiffusionRigidityMagneticFieldPowerLawWithMagneticVariance methods
+// DiffusionQLT_NLGC_AWSoM methods
 //----------------------------------------------------------------------------------------------------------------------------------------------------
 
 /*!
 \author Juan G Alonso Guzman
-\date 01/06/2026
+\date 03/25/2026
 */
-DiffusionRigidityMagneticFieldPowerLawWithMagneticVariance::DiffusionRigidityMagneticFieldPowerLawWithMagneticVariance(void)
-                                                          : DiffusionBase(diff_name_rigidity_magnetic_field_power_law_with_magnetic_variance, 0, STATE_NONE)
+DiffusionQLT_NLGC_AWSoM::DiffusionQLT_NLGC_AWSoM(void)
+                       : DiffusionBase(diff_name_qlt_nlgc_awsom, 0, STATE_NONE)
 {
 };
 
 /*!
 \author Juan G Alonso Guzman
-\date 01/06/2026
+\date 03/25/2026
 \param[in] other Object to initialize from
 
 A copy constructor should first first call the Params' version to copy the data container and then check whether the other object has been set up. If yes, it should simply call the virtual method "SetupDiffusion()" with the argument of "true".
 */
-DiffusionRigidityMagneticFieldPowerLawWithMagneticVariance::DiffusionRigidityMagneticFieldPowerLawWithMagneticVariance(const DiffusionRigidityMagneticFieldPowerLawWithMagneticVariance& other)
+DiffusionQLT_NLGC_AWSoM::DiffusionQLT_NLGC_AWSoM(const DiffusionQLT_NLGC_AWSoM& other)
                                       : DiffusionBase(other)
 {
    RAISE_BITS(_status, STATE_NONE);
@@ -1101,40 +1088,58 @@ DiffusionRigidityMagneticFieldPowerLawWithMagneticVariance::DiffusionRigidityMag
 
 /*!
 \author Juan G Alonso Guzman
-\date 01/06/2026
+\date 03/25/2026
 \param [in] construct Whether called from a copy constructor or separately
 
 This method's main role is to unpack the data container and set up the class data members and status bits marked as "persistent". The function should assume that the data container is available because the calling function will always ensure this.
 */
-void DiffusionRigidityMagneticFieldPowerLawWithMagneticVariance::SetupDiffusion(bool construct)
+void DiffusionQLT_NLGC_AWSoM::SetupDiffusion(bool construct)
 {
 // The parent version must be called explicitly if not constructing
    if (!construct) DiffusionBase::SetupDiffusion(false);
-   container.Read(lam0);
-   container.Read(R0);
-   container.Read(B0);
-   container.Read(pow_law_R);
-   container.Read(pow_law_B);
-   container.Read(kap_rat);
+   container.Read(W_pls_idx);
+   container.Read(W_mns_idx);
+   container.Read(L_perp_times_sqrtB);
 };
 
 /*!
 \author Juan G Alonso Guzman
-\date 01/06/2026
+\date 03/25/2026
 */
-void DiffusionRigidityMagneticFieldPowerLawWithMagneticVariance::EvaluateDiffusion(void)
+void DiffusionQLT_NLGC_AWSoM::EvaluateDiffusion(void)
 {
    if (comp_eval == 2) return;
-   Kappa[1] = (lam0 * vmag / 3.0) * pow(Rigidity(_mom[0], specie) / R0, pow_law_R) * pow(_spdata.Bmag / B0, pow_law_B);
-   Kappa[0] = kap_rat * Kappa[1] * (_spdata.region[1]+_spdata.region[2]) / Sqr(unit_magnetic_fluid * _spdata.Bmag);
+// Calculate magnetic variance
+   double Z2 = _spdata.region[W_pls_idx] + _spdata.region[W_mns_idx];
+// Correct magnetic variance so it doesn't get too close to zero 
+#if defined(DIFF_CORRECT_Z2)
+   Z2 += Z2_diff * (GSL_CONST_CGSM_ASTRONOMICAL_UNIT / unit_length_fluid / _pos.Norm());
+#endif
+// It is assumed that Elsasser variance is magnetically dominated, i.e. Z^2 ~ dB^2 / (4pi * rho)
+   double dB2 = Z2 * M_4PI * _spdata.n_dens;
+
+// 2D_correlation_length comes directly from model
+   double l_c = L_perp_times_sqrtB / sqrt(_spdata.Bmag);
+// slab_bendover_length = 1.2618 * 2D_correlation_length
+   double l_b = 1.2618 * l_c;
+// slab turbulent ratio comes directly from the model
+   double A2_sl = 0.2 * dB2 / Sqr(_spdata.Bmag * unit_magnetic_fluid);
+// QLT perpendicular diffusion
+   Kappa[1] = 3.0 * Cube(vmag) / (20.0 * l_b * Sqr(Omega) * A2_sl * sin(3.0 * M_PI / 5.0)) * (1.0 + (72.0 / 7.0) * cbrt(Quint(l_b * Omega / vmag)));
+
+// 2D_turbulent_ratio = 4 * slab_turbulent_ratio assuming an 80%-20% split
+   double A2_2D = 4.0 * A2_sl;
+// NLGC perpendicular diffusion
+   double C = sqrt(3.0 * M_PI) * tgamma(5.0 / 6.0) / (6.0 * tgamma(1.0 / 3.0));
+   Kappa[0] = cbrt(Sqr(C * A2_2D * l_c * vmag / 3.0) * Kappa[1]);
 };
 
 /*!
 \author Juan G Alonso Guzman
-\date 01/06/2026
+\date 03/25/2026
 \return double       Derivative in mu
 */
-double DiffusionRigidityMagneticFieldPowerLawWithMagneticVariance::GetMuDerivative(void)
+double DiffusionQLT_NLGC_AWSoM::GetMuDerivative(void)
 {
    return 0.0;
 };

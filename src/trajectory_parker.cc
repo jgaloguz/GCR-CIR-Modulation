@@ -198,10 +198,14 @@ void TrajectoryParker::DriftCoeff(void)
       drift_vel.Normalize();
       drift_vel *= 0.5 * _vel[0];
    };
+#ifdef TRAJ_PARKER_USE_U_ADVECT
 // Add bulk flow velocity
    drift_vel += _spdata.Uvec;
+#endif
 #else
+#ifdef TRAJ_PARKER_USE_U_ADVECT
    drift_vel = _spdata.Uvec;
+#endif
 #endif
 };
 

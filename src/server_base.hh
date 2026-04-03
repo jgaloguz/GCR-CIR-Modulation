@@ -48,7 +48,7 @@ namespace Spectrum {
 const double unit_length_server = 6.957e+10;
 
 //! Unit of number density
-const double unit_number_density_server = 6.022e26;
+const double unit_number_density_server = 1.0;
 
 //! Unit of velocity
 const double unit_velocity_server = 1.0E5;
@@ -61,9 +61,6 @@ const double unit_electric_server = unit_velocity_server * unit_magnetic_server 
 
 //! Unit of pressure
 const double unit_pressure_server = 1.0;
-
-//! Unit of temperature
-const double unit_temperature_server = 1.0;
 
 //! Angular velocity of rotating reference frame
 const double server_rot_rf_omega = M_2PI / (27.0 * 24.0 * 60.0 * 60.0) / unit_frequency_fluid;

@@ -751,8 +751,7 @@ void ServerCartesianFront::GetVariables(double t, const GeoVector& pos, SpatialD
 
 #if defined(SERVER_CORRECT_MAG)
 // Modify magnetic field magnitude
-   static double one_au = (GSL_CONST_CGSM_ASTRONOMICAL_UNIT / unit_length_fluid);
-   spdata.Bmag += dB_server * Sqr(one_au / pos_rot.Norm());
+   spdata.Bmag += dB_server * Sqr(GSL_CONST_CGSM_ASTRONOMICAL_UNIT / unit_length_fluid / pos_rot.Norm());
    spdata.Bvec = UnitVec(spdata.Bvec) * spdata.Bmag;
 #endif
 

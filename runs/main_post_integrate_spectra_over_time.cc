@@ -29,13 +29,15 @@ double integrate_diff_int(double *J, double *T, int N)
 int main(int argc, char** argv)
 {
    int eng, n_eng = 100;
-   int day, n_day = 100;
+   int day, n_day = 50;
    int t_idx, n_time = 1;
    double time_dbl;
+   double low_epoch;
    std::string time_str;
    std::string cir_date;
    if(argc > 1) cir_date = argv[1];
    if(argc > 2) n_time = atoi(argv[2]);
+   if(argc > 3) low_epoch = atoi(argv[3]);
    std::ifstream input_spectrum_file;
    std::ofstream output_spectrum_file;
    std::string infilename;
@@ -51,9 +53,9 @@ int main(int argc, char** argv)
    for(t_idx = 0; t_idx <= n_time; t_idx++) {
 
 // Find initial time
-      time_dbl = t_idx * 27.0 / n_time;
+      time_dbl = low_epoch + t_idx * 8.0 / n_time;
       std::stringstream ss;
-      ss << std::fixed << std::setprecision(1) << time_dbl;
+      ss << std::fixed << std::setprecision(3) << time_dbl;
       time_str = ss.str();
 
 // Status message

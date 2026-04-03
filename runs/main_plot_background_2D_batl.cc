@@ -8,7 +8,12 @@
 
 using namespace Spectrum;
 
-inline GeoVector drift_numer(double r_L, double vel, SpatialData spdata, int specie)
+const int specie = SPECIES_PROTON_BEAM;
+const double one_au = GSL_CONST_CGSM_ASTRONOMICAL_UNIT / unit_length_fluid;
+const double one_day = 24.0 * 60.0 * 60.0 / unit_time_fluid;
+const double Rs = 6.957e+10 / unit_length_fluid;
+
+inline GeoVector drift_numer(double r_L, double vel, SpatialData spdata)
 {
    GeoVector drift = (r_L * vel / 3.0) * (spdata.curlB() - 2.0 * (spdata.gradBmag ^ spdata.bhat)) / spdata.Bmag;
 // Correct magnitude if necessary
@@ -19,18 +24,27 @@ inline GeoVector drift_numer(double r_L, double vel, SpatialData spdata, int spe
    return drift;
 };
 
+inline double correct_Z2(SpatialData spdata, double r)
+{
+   double Z2 = spdata.region[1] + spdata.region[2];
+#if defined(DIFF_CORRECT_Z2)
+   Z2 += Z2_diff * (one_au / r);
+#endif
+   return Z2 / SPC_CONST_CGSM_MASS_PROTON;
+};
+
 int main(int argc, char** argv)
 {
    int active_local_workers, workers_stopped;
    BackgroundServerBATL background;
-   DiffusionRigidityMagneticFieldPowerLawWithMagneticVariance diffusion;
+   DiffusionQLT_NLGC_AWSoM diffusion;
 
    SpatialData spdata;
    double t = 0.0;
    int i,j,k;
    GeoVector pos = gv_zeros, vel = gv_zeros, mom = gv_zeros;
-   int specie = SPECIES_PROTON_BEAM;
    std::ofstream Den_file;
+   std::ofstream Pth_file;
    std::ofstream AbsVel_file;
    std::ofstream RadVel_file;
    std::ofstream DivVel_file;
@@ -109,29 +123,17 @@ int main(int argc, char** argv)
 
    container.Clear();
 
-// Parallel mean free path
-   double lam0 = 1.5 * GSL_CONST_CGSM_ASTRONOMICAL_UNIT / unit_length_fluid;
-   container.Insert(lam0);
+// Index of region with forward propagating Alfven wave density
+   int W_pls_idx = 1;
+   container.Insert(W_pls_idx);
 
-// Rigidity normalization factor
-   double R0 = 1.0e9 / unit_rigidity_particle;
-   container.Insert(R0);
+// Index of region with backward propagating Alfven wave density
+   int W_mns_idx = 2;
+   container.Insert(W_mns_idx);
 
-// Magnetic field normalization factor
-   double BmagE = 5.0e-5 / unit_magnetic_fluid;
-   container.Insert(BmagE);
-
-// Power law slope for rigidity
-   double pow_law_R = 0.5;
-   container.Insert(pow_law_R);
-
-// Power law slope for magnetic field
-   double pow_law_B = -1.0;
-   container.Insert(pow_law_B);
-
-// Scaling constant (~0.5 * a^2 * 4)
-   double kap_rat = 0.15;
-   container.Insert(kap_rat);
+// Constant = correlation_length * sqrt(B)
+   double L_perp_times_sqrtB = 150.0 * (1.0e5 / unit_length_fluid) * sqrt(1.0e4 / unit_magnetic_fluid);
+   container.Insert(L_perp_times_sqrtB);
 
 // Set up diffusion object
    diffusion.SetupObject(container);
@@ -149,7 +151,6 @@ int main(int argc, char** argv)
    else if (mpi_config->is_worker) {
 
       int i, j, k, N = 1000;
-      double Rs = 6.957e+10 / unit_length_fluid;
       double x_min = -1075.0 * Rs;
       double y_min = -1075.0 * Rs;
       double z_min = -1075.0 * Rs;
@@ -163,9 +164,8 @@ int main(int argc, char** argv)
       spdata._mask = BACKGROUND_ALL | BACKGROUND_gradU | BACKGROUND_gradB;
 
       double one_au = GSL_CONST_CGSM_ASTRONOMICAL_UNIT / unit_length_fluid;
-      double one_day = 24.0 * 60.0 * 60.0 / unit_time_fluid;
       pos[0] = 1.0 * one_au;
-      mom[0] = Mom(1000.0 * SPC_CONST_CGSM_MEGA_ELECTRON_VOLT / unit_energy_particle, specie);
+      mom[0] = Mom(200.0 * SPC_CONST_CGSM_MEGA_ELECTRON_VOLT / unit_energy_particle, specie);
       vel[0] = Vel(mom[0], specie);
       background.GetFields(t, pos, mom, spdata);
       r_L = LarmorRadius(mom[0], spdata.Bmag, specie);
@@ -184,6 +184,7 @@ int main(int argc, char** argv)
       std::cout << "2D plots..." << std::endl;
 
       Den_file.open("output_" + cir_date + "/CIR/den_equ_" + cir_date + ".dat");
+      Pth_file.open("output_" + cir_date + "/CIR/pth_equ_" + cir_date + ".dat");
       AbsVel_file.open("output_" + cir_date + "/CIR/vel_equ_" + cir_date + ".dat");
       RadVel_file.open("output_" + cir_date + "/CIR/rad_vel_equ_" + cir_date + ".dat");
       DivVel_file.open("output_" + cir_date + "/CIR/div_vel_equ_" + cir_date + ".dat");
@@ -203,6 +204,7 @@ int main(int argc, char** argv)
             pos[1] = y_min + j * dy;
             if (pos.Norm() < 20.0 * Rs) {
                spdata.n_dens = 0.0;
+               spdata.p_ther = 0.0;
                spdata.Uvec = gv_zeros;
                rad_vel = 0.0;
                spdata.gradUvec = gm_zeros;
@@ -219,11 +221,12 @@ int main(int argc, char** argv)
                rad_vel = UnitVec(pos) * UnitVec(spdata.Uvec);
                polarity = (spdata.Bvec * pos >= 0.0 ? 1.0 : -1.0);
                r_L = LarmorRadius(mom[0], spdata.Bmag, specie);
-               drift_vel = drift_numer(r_L, vel[0], spdata, specie);
+               drift_vel = drift_numer(r_L, vel[0], spdata);
                diff1 = diffusion.GetComponent(0, t, pos, mom, spdata);
                diff2 = diffusion.GetComponent(1, t, pos, mom, spdata);
             };
-            Den_file << std::setw(18) << spdata.n_dens * unit_density_fluid;
+            Den_file << std::setw(18) << spdata.n_dens * unit_number_density_fluid;
+            Pth_file << std::setw(18) << spdata.p_ther * unit_pressure_fluid;
             AbsVel_file << std::setw(18) << spdata.Uvec.Norm() * unit_velocity_fluid;
             RadVel_file << std::setw(18) << rad_vel;
             DivVel_file << std::setw(18) << spdata.divU() * unit_velocity_fluid / unit_length_fluid;
@@ -231,12 +234,13 @@ int main(int argc, char** argv)
             PolMag_file << std::setw(18) << polarity;
             dmax_file << std::setw(18) << spdata.dmax;
             HetFlx_file << std::setw(18) << spdata.region[0];
-            TurEnr_file << std::setw(18) << spdata.region[1]+spdata.region[2];
+            TurEnr_file << std::setw(18) << correct_Z2(spdata, pos.Norm());
             drift_file << std::setw(18) << drift_vel.Norm() / vel[0];
             diff1_file << std::setw(18) << diff1 * unit_diffusion_fluid;
             diff2_file << std::setw(18) << diff2 * unit_diffusion_fluid;
          };
          Den_file << std::endl;
+         Pth_file << std::endl;
          AbsVel_file << std::endl;
          RadVel_file << std::endl;
          DivVel_file << std::endl;
@@ -250,6 +254,7 @@ int main(int argc, char** argv)
          diff2_file << std::endl;
       };
       Den_file.close();
+      Pth_file.close();
       AbsVel_file.close();
       RadVel_file.close();
       DivVel_file.close();
@@ -263,6 +268,7 @@ int main(int argc, char** argv)
       diff2_file.close();
 
       Den_file.open("output_" + cir_date + "/CIR/den_mer_" + cir_date + ".dat");
+      Pth_file.open("output_" + cir_date + "/CIR/pth_mer_" + cir_date + ".dat");
       AbsVel_file.open("output_" + cir_date + "/CIR/vel_mer_" + cir_date + ".dat");
       RadVel_file.open("output_" + cir_date + "/CIR/rad_vel_mer_" + cir_date + ".dat");
       DivVel_file.open("output_" + cir_date + "/CIR/div_vel_mer_" + cir_date + ".dat");
@@ -282,6 +288,7 @@ int main(int argc, char** argv)
             pos[2] = z_min + k * dz;
             if (pos.Norm() < 20.0 * Rs) {
                spdata.n_dens = 0.0;
+               spdata.p_ther = 0.0;
                spdata.Uvec = gv_zeros;
                rad_vel = 0.0;
                spdata.gradUvec = gm_zeros;
@@ -298,11 +305,12 @@ int main(int argc, char** argv)
                rad_vel = UnitVec(pos) * UnitVec(spdata.Uvec);
                polarity = (spdata.Bvec * pos >= 0.0 ? 1.0 : -1.0);
                r_L = LarmorRadius(mom[0], spdata.Bmag, specie);
-               drift_vel = drift_numer(r_L, vel[0], spdata, specie);
+               drift_vel = drift_numer(r_L, vel[0], spdata);
                diff1 = diffusion.GetComponent(0, t, pos, mom, spdata);
                diff2 = diffusion.GetComponent(1, t, pos, mom, spdata);
             };
-            Den_file << std::setw(18) << spdata.n_dens * unit_density_fluid;
+            Den_file << std::setw(18) << spdata.n_dens * unit_number_density_fluid;
+            Pth_file << std::setw(18) << spdata.p_ther * unit_pressure_fluid;
             AbsVel_file << std::setw(18) << spdata.Uvec.Norm() * unit_velocity_fluid;
             RadVel_file << std::setw(18) << rad_vel;
             DivVel_file << std::setw(18) << spdata.divU() * unit_velocity_fluid / unit_length_fluid;
@@ -310,12 +318,13 @@ int main(int argc, char** argv)
             PolMag_file << std::setw(18) << polarity;
             dmax_file << std::setw(18) << spdata.dmax;
             HetFlx_file << std::setw(18) << spdata.region[0];
-            TurEnr_file << std::setw(18) << spdata.region[1]+spdata.region[2];
+            TurEnr_file << std::setw(18) << correct_Z2(spdata, pos.Norm());
             drift_file << std::setw(18) << drift_vel.Norm() / vel[0];
             diff1_file << std::setw(18) << diff1 * unit_diffusion_fluid;
             diff2_file << std::setw(18) << diff2 * unit_diffusion_fluid;
          };
          Den_file << std::endl;
+         Pth_file << std::endl;
          AbsVel_file << std::endl;
          RadVel_file << std::endl;
          DivVel_file << std::endl;
@@ -329,90 +338,7 @@ int main(int argc, char** argv)
          diff2_file << std::endl;
       };
       Den_file.close();
-      AbsVel_file.close();
-      RadVel_file.close();
-      DivVel_file.close();
-      AbsMag_file.close();
-      PolMag_file.close();
-      dmax_file.close();
-      HetFlx_file.close();
-      TurEnr_file.close();
-      drift_file.close();
-      diff1_file.close();
-      diff2_file.close();
-
-//--------------------------------------------------------------------------------
-
-      std::cout << "1D plots..." << std::endl;
-
-      Den_file.open("output_" + cir_date + "/CIR/den_1au_" + cir_date + ".dat");
-      AbsVel_file.open("output_" + cir_date + "/CIR/vel_1au_" + cir_date + ".dat");
-      RadVel_file.open("output_" + cir_date + "/CIR/rad_vel_1au_" + cir_date + ".dat");
-      DivVel_file.open("output_" + cir_date + "/CIR/div_vel_1au_" + cir_date + ".dat");
-      AbsMag_file.open("output_" + cir_date + "/CIR/mag_1au_" + cir_date + ".dat");
-      PolMag_file.open("output_" + cir_date + "/CIR/pol_1au_" + cir_date + ".dat");
-      dmax_file.open("output_" + cir_date + "/CIR/dmax_1au_" + cir_date + ".dat");
-      HetFlx_file.open("output_" + cir_date + "/CIR/het_flx_1au_" + cir_date + ".dat");
-      TurEnr_file.open("output_" + cir_date + "/CIR/tur_enr_1au_" + cir_date + ".dat");
-      drift_file.open("output_" + cir_date + "/CIR/drift_1au_" + cir_date + ".dat");
-      diff1_file.open("output_" + cir_date + "/CIR/diff1_1au_" + cir_date + ".dat");
-      diff2_file.open("output_" + cir_date + "/CIR/diff2_1au_" + cir_date + ".dat");
-
-      pos[0] = one_au;
-      pos[1] = 0.0;
-      pos[2] = 0.0;
-      double dt = 27.0 * one_day / N;
-      for (i = 0; i < N; i++) {
-// Frame rotates CCW in the xy-plane, so steady-state data should be sampled CW
-         t = i * dt;
-
-         background.GetFields(t, pos, mom, spdata);
-         rad_vel = UnitVec(pos) * UnitVec(spdata.Uvec);
-         polarity = (spdata.Bvec * pos >= 0.0 ? 1.0 : -1.0);
-         r_L = LarmorRadius(mom[0], spdata.Bmag, specie);
-         drift_vel = drift_numer(r_L, vel[0], spdata, specie);
-         diff1 = diffusion.GetComponent(0, t, pos, mom, spdata);
-         diff2 = diffusion.GetComponent(1, t, pos, mom, spdata);   
-
-         Den_file << std::setw(18) << t / one_day
-                  << std::setw(18) << spdata.n_dens * unit_density_fluid
-                  << std::endl;
-         AbsVel_file << std::setw(18) << t / one_day 
-                     << std::setw(18) << spdata.Uvec.Norm() * unit_velocity_fluid
-                     << std::endl;
-         RadVel_file << std::setw(18) << t / one_day 
-                     << std::setw(18) << rad_vel
-                     << std::endl;
-         DivVel_file << std::setw(18) << t / one_day 
-                     << std::setw(18) << spdata.divU() * unit_velocity_fluid / unit_length_fluid
-                     << std::endl;
-         AbsMag_file << std::setw(18) << t / one_day 
-                     << std::setw(18) << spdata.Bmag * unit_magnetic_fluid
-                     << std::endl;
-         PolMag_file << std::setw(18) << t / one_day 
-                     << std::setw(18) << polarity
-                     << std::endl;
-         dmax_file << std::setw(18) << t / one_day 
-                   << std::setw(18) << spdata.dmax
-                   << std::endl;
-         HetFlx_file << std::setw(18) << t / one_day 
-                     << std::setw(18) << spdata.region[0]
-                     << std::endl;
-         TurEnr_file << std::setw(18) << t / one_day 
-                     << std::setw(18) << spdata.region[1]+spdata.region[2]
-                     << std::endl;
-         drift_file << std::setw(18) << t / one_day 
-                    << std::setw(18) << drift_vel.Norm() / vel[0]
-                    << std::endl;
-         diff1_file << std::setw(18) << t / one_day 
-                    << std::setw(18) << diff1 * unit_diffusion_fluid
-                    << std::endl;
-         diff2_file << std::setw(18) << t / one_day 
-                    << std::setw(18) << diff2 * unit_diffusion_fluid
-                    << std::endl;
-      };
-
-      Den_file.close();
+      Pth_file.close();
       AbsVel_file.close();
       RadVel_file.close();
       DivVel_file.close();

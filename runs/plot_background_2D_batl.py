@@ -15,6 +15,7 @@ else:
    sys.exit(1)
 
 plot_den = True
+plot_tmp = True
 plot_vel = True
 plot_rad_vel = True
 plot_div_vel = True
@@ -27,11 +28,6 @@ plot_tur_enr = True
 plot_drift = True
 plot_diff1 = True
 plot_diff2 = True
-
-quants = 0
-data1DX = []
-data1DY = []
-data1DL = []
 
 # Find index for midpoint of curve
 def midpoint(curve_xy):
@@ -58,7 +54,6 @@ X, Y = np.meshgrid(x, y)
 # Create the pcolormesh plots
 # ==================================================
 if plot_den:
-   quants += 1
    print("Plotting plasma density")
 
    Z = np.loadtxt("output_{:s}/CIR/den_equ_{:s}.dat".format(cir_date, cir_date))
@@ -87,23 +82,46 @@ if plot_den:
    plt.savefig("output_{:s}/CIR/den_mer_{:s}.png".format(cir_date, cir_date), dpi=200)
    plt.close()
 
-   Z = np.loadtxt("output_{:s}/CIR/den_1au_{:s}.dat".format(cir_date, cir_date))
-   plt.plot(Z[:,0], Z[:,1])
-   plt.title('Plasma Density (1 au)')
-   plt.xlabel('days')
-   plt.ylabel('n (amu/cc)')
-   plt.xlim(0, 27.0)
+# ==================================================
+if plot_tmp:
+   print("Plotting plasma temperature")
 
-   data1DX.append(Z[:,0])
-   data1DY.append(Z[:,1])
-   data1DL.append('n (amu/cc)')
+   P = np.loadtxt("output_{:s}/CIR/pth_equ_{:s}.dat".format(cir_date, cir_date)) * 0.1 # dyn/cm^.2 --> Pa
+   n = np.loadtxt("output_{:s}/CIR/den_equ_{:s}.dat".format(cir_date, cir_date)) * 1.0e6 # cm^-3 --> m^-3
+   Z = np.zeros_like(P)
+   np.divide(P, n * 1.380649e-23, out=Z, where=n != 0) # T = P / (n*k_B)
+   Z = Z / 1.0e6 # K --> MK
+   cmap = plt.colormaps.get_cmap('magma')
+   cmap.set_under("white")
+   plt.pcolormesh(X, Y, np.transpose(Z), norm=LogNorm(vmin=np.min(Z[Z > 0.0]), vmax=np.max(Z)),
+                           cmap=cmap, shading='gouraud')
+   plt.colorbar(label='T (MK)')
+   plt.title('Plasma Temperature (z = 0)')
+   plt.xlabel('x (au)')
+   plt.ylabel('y (au)')
 
-   plt.savefig("output_{:s}/CIR/den_1au_{:s}.png".format(cir_date, cir_date), dpi=200)
+   plt.savefig("output_{:s}/CIR/tmp_equ_{:s}.png".format(cir_date, cir_date), dpi=200)
+   plt.close()
+
+   P = np.loadtxt("output_{:s}/CIR/pth_mer_{:s}.dat".format(cir_date, cir_date)) * 0.1 # dyn/cm^.2 --> Pa
+   n = np.loadtxt("output_{:s}/CIR/den_mer_{:s}.dat".format(cir_date, cir_date)) * 1.0e6 # cm^-3 --> m^-3
+   Z = np.zeros_like(P)
+   np.divide(P, n * 1.380649e-23, out=Z, where=n != 0) # T = P / (n*k_B)
+   Z = Z / 1.0e6 # K --> MK
+   cmap = plt.colormaps.get_cmap('magma')
+   cmap.set_under("white")
+   plt.pcolormesh(X, Y, np.transpose(Z), norm=LogNorm(vmin=np.min(Z[Z > 0.0]), vmax=np.max(Z)),
+                           cmap=cmap, shading='gouraud')
+   plt.colorbar(label='T (MK)')
+   plt.title('Plasma Temperature (y = 0)')
+   plt.xlabel('x (au)')
+   plt.ylabel('z (au)')
+
+   plt.savefig("output_{:s}/CIR/tmp_mer_{:s}.png".format(cir_date, cir_date), dpi=200)
    plt.close()
 
 # ==================================================
 if plot_vel:
-   quants += 1
    print("Plotting plasma flow")
 
    Z = np.loadtxt("output_{:s}/CIR/vel_equ_{:s}.dat".format(cir_date, cir_date)) / 1.0e5 # cm/s --> km/s
@@ -132,24 +150,8 @@ if plot_vel:
    plt.savefig("output_{:s}/CIR/vel_mer_{:s}.png".format(cir_date, cir_date), dpi=200)
    plt.close()
 
-   Z = np.loadtxt("output_{:s}/CIR/vel_1au_{:s}.dat".format(cir_date, cir_date))
-   Z[:,1] = Z[:,1] / 1.0e5 # cm/s --> km/s
-   plt.plot(Z[:,0], Z[:,1])
-   plt.title('Plasma Flow Magnitude (km/s)')
-   plt.xlabel('days')
-   plt.ylabel('|u| (km/s)')
-   plt.xlim(0, 27.0)
-
-   data1DX.append(Z[:,0])
-   data1DY.append(Z[:,1])
-   data1DL.append('|u| (km/s)')
-
-   plt.savefig("output_{:s}/CIR/vel_1au_{:s}.png".format(cir_date, cir_date), dpi=200)
-   plt.close()
-
 # ==================================================
 if plot_rad_vel:
-   quants += 1
    print("Plotting fraction of radial plasma flow")
 
    Z = np.loadtxt("output_{:s}/CIR/rad_vel_equ_{:s}.dat".format(cir_date, cir_date))
@@ -178,24 +180,8 @@ if plot_rad_vel:
    plt.savefig("output_{:s}/CIR/rad_vel_mer_{:s}.png".format(cir_date, cir_date), dpi=200)
    plt.close()
 
-   Z = np.loadtxt("output_{:s}/CIR/rad_vel_1au_{:s}.dat".format(cir_date, cir_date))
-   Z[:,1] = Z[:,1]
-   plt.plot(Z[:,0], Z[:,1])
-   plt.title('Fraction of Radial Plasma Flow')
-   plt.xlabel('days')
-   plt.ylabel('$\\hat{r} \\cdot \\hat{u}$')
-   plt.xlim(0, 27.0)
-
-   data1DX.append(Z[:,0])
-   data1DY.append(Z[:,1])
-   data1DL.append('$\\hat{r} \\cdot \\hat{u}$')
-
-   plt.savefig("output_{:s}/CIR/rad_vel_1au_{:s}.png".format(cir_date, cir_date), dpi=200)
-   plt.close()
-
 # ==================================================
 if plot_div_vel:
-   quants += 1
    print("Plotting divergence of plasma flow")
 
    Z = np.loadtxt("output_{:s}/CIR/div_vel_equ_{:s}.dat".format(cir_date, cir_date))
@@ -224,24 +210,8 @@ if plot_div_vel:
    plt.savefig("output_{:s}/CIR/div_vel_mer_{:s}.png".format(cir_date, cir_date), dpi=200)
    plt.close()
 
-   Z = np.loadtxt("output_{:s}/CIR/div_vel_1au_{:s}.dat".format(cir_date, cir_date))
-   Z[:,1] = Z[:,1]
-   plt.plot(Z[:,0], Z[:,1])
-   plt.title('Divergence of Plasma Flow (1/s)')
-   plt.xlabel('days')
-   plt.ylabel('$\\nabla \\cdot u$ (km/s)')
-   plt.xlim(0, 27.0)
-
-   data1DX.append(Z[:,0])
-   data1DY.append(Z[:,1])
-   data1DL.append('$\\nabla \\cdot u$ (1/s)')
-
-   plt.savefig("output_{:s}/CIR/div_vel_1au_{:s}.png".format(cir_date, cir_date), dpi=200)
-   plt.close()
-
 # ==================================================
 if plot_mag:
-   quants += 1
    print("Plotting magnetic field")
 
    Z = np.loadtxt("output_{:s}/CIR/mag_equ_{:s}.dat".format(cir_date, cir_date)) / 1.0e-5 # G --> nT
@@ -278,24 +248,8 @@ if plot_mag:
    plt.savefig("output_{:s}/CIR/mag_mer_{:s}.png".format(cir_date, cir_date), dpi=200)
    plt.close()
 
-   Z = np.loadtxt("output_{:s}/CIR/mag_1au_{:s}.dat".format(cir_date, cir_date))
-   Z[:,1] = Z[:,1] / 1.0e-5 # G --> nT
-   plt.plot(Z[:,0], Z[:,1])
-   plt.title('Magnetic Field Magnitude (1 au)')
-   plt.xlabel('days')
-   plt.ylabel('|B| (nT)')
-   plt.xlim(0, 27.0)
-
-   data1DX.append(Z[:,0])
-   data1DY.append(Z[:,1])
-   data1DL.append('|B| (nT)')
-
-   plt.savefig("output_{:s}/CIR/mag_1au_{:s}.png".format(cir_date, cir_date), dpi=200)
-   plt.close()
-
 # ==================================================
 if plot_pol:
-   quants += 1
    print("Plotting magnetic polarity")
 
    Z = np.loadtxt("output_{:s}/CIR/pol_equ_{:s}.dat".format(cir_date, cir_date))
@@ -318,23 +272,8 @@ if plot_pol:
    plt.savefig("output_{:s}/CIR/pol_mer_{:s}.png".format(cir_date, cir_date), dpi=200)
    plt.close()
 
-   Z = np.loadtxt("output_{:s}/CIR/pol_1au_{:s}.dat".format(cir_date, cir_date))
-   plt.plot(Z[:,0], Z[:,1])
-   plt.title('Magnetic Field Polarity (1 au)')
-   plt.xlabel('days')
-   plt.ylabel('sgn(B) (+out/-in)')
-   plt.xlim(0, 27.0)
-
-   data1DX.append(Z[:,0])
-   data1DY.append(Z[:,1])
-   data1DL.append('sgn(B) (+out/-in)')
-
-   plt.savefig("output_{:s}/CIR/pol_1au_{:s}.png".format(cir_date, cir_date), dpi=200)
-   plt.close()
-
 # ==================================================
 if plot_dmax:
-   quants += 1
    print("Plotting cell size")
 
    Z = np.loadtxt("output_{:s}/CIR/dmax_equ_{:s}.dat".format(cir_date, cir_date))
@@ -359,31 +298,16 @@ if plot_dmax:
    plt.savefig("output_{:s}/CIR/dmax_mer_{:s}.png".format(cir_date, cir_date), dpi=200)
    plt.close()
 
-   Z = np.loadtxt("output_{:s}/CIR/dmax_1au_{:s}.dat".format(cir_date, cir_date))
-   plt.plot(Z[:,0], Z[:,1])
-   plt.title('Cell Size (1 au)')
-   plt.xlabel('days')
-   plt.ylabel('$\\Delta x$ (au)')
-   plt.xlim(0, 27.0)
-
-   data1DX.append(Z[:,0])
-   data1DY.append(Z[:,1])
-   data1DL.append('$\\Delta x$ (au)')
-
-   plt.savefig("output_{:s}/CIR/dmax_1au_{:s}.png".format(cir_date, cir_date), dpi=200)
-   plt.close()
-
 # ==================================================
 if plot_het_flx:
-   quants += 1
    print("Plotting heat flux speed")
 
    Z = np.loadtxt("output_{:s}/CIR/het_flx_equ_{:s}.dat".format(cir_date, cir_date))
    cmap = plt.colormaps.get_cmap('magma')
    cmap.set_under("white")
-   plt.pcolormesh(X, Y, np.transpose(Z), vmin=np.min(Z[Z > 0.0]), vmax=np.max(Z),
+   plt.pcolormesh(X, Y, np.transpose(Z), norm=LogNorm(vmin=np.min(Z[Z > 0.0]), vmax=np.max(Z)),
                            cmap=cmap, shading='gouraud')
-   plt.colorbar(label='$Q_e$ (erg)')
+   plt.colorbar(label='$Q_e$ (cm$^2$ s$^{-2}$)')
    plt.title('Heat Flux (z = 0)')
    plt.xlabel('x (au)')
    plt.ylabel('y (au)')
@@ -394,9 +318,9 @@ if plot_het_flx:
    Z = np.loadtxt("output_{:s}/CIR/het_flx_mer_{:s}.dat".format(cir_date, cir_date))
    cmap = plt.colormaps.get_cmap('magma')
    cmap.set_under("white")
-   plt.pcolormesh(X, Y, np.transpose(Z), vmin=np.min(Z[Z > 0.0]), vmax=np.max(Z),
+   plt.pcolormesh(X, Y, np.transpose(Z), norm=LogNorm(vmin=np.min(Z[Z > 0.0]), vmax=np.max(Z)),
                            cmap=cmap, shading='gouraud')
-   plt.colorbar(label='$Q_e$ (erg)')
+   plt.colorbar(label='$Q_e$ (cm$^2$ s$^{-2}$)')
    plt.title('Heat Flux (y = 0)')
    plt.xlabel('x (au)')
    plt.ylabel('y (au)')
@@ -404,31 +328,16 @@ if plot_het_flx:
    plt.savefig("output_{:s}/CIR/het_flx_mer_{:s}.png".format(cir_date, cir_date), dpi=200)
    plt.close()
 
-   Z = np.loadtxt("output_{:s}/CIR/het_flx_1au_{:s}.dat".format(cir_date, cir_date))
-   plt.plot(Z[:,0], Z[:,1])
-   plt.title('Heat Flux (1 au)')
-   plt.xlabel('days')
-   plt.ylabel('$Q_e$ (erg)')
-   plt.xlim(0, 27.0)
-
-   data1DX.append(Z[:,0])
-   data1DY.append(Z[:,1])
-   data1DL.append('$Q_e (erg)$')
-
-   plt.savefig("output_{:s}/CIR/het_flx_1au_{:s}.png".format(cir_date, cir_date), dpi=200)
-   plt.close()
-
 # ==================================================
 if plot_tur_enr:
-   quants += 1
    print("Plotting turbulent energy")
 
    Z = np.loadtxt("output_{:s}/CIR/tur_enr_equ_{:s}.dat".format(cir_date, cir_date))
    cmap = plt.colormaps.get_cmap('cividis')
    cmap.set_under("white")
-   plt.pcolormesh(X, Y, np.transpose(Z), vmin=np.min(Z[Z > 0.0]), vmax=np.max(Z),
+   plt.pcolormesh(X, Y, np.transpose(Z), norm=LogNorm(vmin=np.min(Z[Z > 0.0]), vmax=np.max(Z)),
                            cmap=cmap, shading='gouraud')
-   plt.colorbar(label='$\\langle \\delta B^2 \\rangle$ (erg)')
+   plt.colorbar(label='$Z^2$ (cm$^2$ s$^{-2}$)')
    plt.title('Turbulent Energy (z = 0)')
    plt.xlabel('x (au)')
    plt.ylabel('y (au)')
@@ -439,9 +348,9 @@ if plot_tur_enr:
    Z = np.loadtxt("output_{:s}/CIR/tur_enr_mer_{:s}.dat".format(cir_date, cir_date))
    cmap = plt.colormaps.get_cmap('cividis')
    cmap.set_under("white")
-   plt.pcolormesh(X, Y, np.transpose(Z), vmin=np.min(Z[Z > 0.0]), vmax=np.max(Z),
+   plt.pcolormesh(X, Y, np.transpose(Z), norm=LogNorm(vmin=np.min(Z[Z > 0.0]), vmax=np.max(Z)),
                            cmap=cmap, shading='gouraud')
-   plt.colorbar(label='$\\langle \\delta B^2 \\rangle$ (erg)')
+   plt.colorbar(label='$Z^2$ (cm$^2$ s$^{-2}$)')
    plt.title('Turbulent Energy (y = 0)')
    plt.xlabel('x (au)')
    plt.ylabel('y (au)')
@@ -449,23 +358,8 @@ if plot_tur_enr:
    plt.savefig("output_{:s}/CIR/tur_enr_mer_{:s}.png".format(cir_date, cir_date), dpi=200)
    plt.close()
 
-   Z = np.loadtxt("output_{:s}/CIR/tur_enr_1au_{:s}.dat".format(cir_date, cir_date))
-   plt.plot(Z[:,0], Z[:,1])
-   plt.title('Turbulent Energy (1 au)')
-   plt.xlabel('days')
-   plt.ylabel('$\\langle \\delta B^2 \\rangle$ (erg)')
-   plt.xlim(0, 27.0)
-
-   data1DX.append(Z[:,0])
-   data1DY.append(Z[:,1])
-   data1DL.append('$\\langle \\delta B^2 \\rangle$ (erg)')
-
-   plt.savefig("output_{:s}/CIR/tur_enr_1au_{:s}.png".format(cir_date, cir_date), dpi=200)
-   plt.close()
-
 # ==================================================
 if plot_drift:
-   quants += 1
    print("Plotting drift speed")
 
    Z = np.loadtxt("output_{:s}/CIR/drift_equ_{:s}.dat".format(cir_date, cir_date))
@@ -494,23 +388,8 @@ if plot_drift:
    plt.savefig("output_{:s}/CIR/drift_mer_{:s}.png".format(cir_date, cir_date), dpi=200)
    plt.close()
 
-   Z = np.loadtxt("output_{:s}/CIR/drift_1au_{:s}.dat".format(cir_date, cir_date))
-   plt.plot(Z[:,0], Z[:,1])
-   plt.title('Magnetic Drift Speed (1 au)')
-   plt.xlabel('days')
-   plt.ylabel('$v_d$ (/ $v_p$)')
-   plt.xlim(0, 27.0)
-
-   data1DX.append(Z[:,0])
-   data1DY.append(Z[:,1])
-   data1DL.append('$v_d$ (/ $v_p$)')
-
-   plt.savefig("output_{:s}/CIR/drift_1au_{:s}.png".format(cir_date, cir_date), dpi=200)
-   plt.close()
-
 # ==================================================
 if plot_diff1:
-   quants += 1
    print("Plotting diffusion 1 (perpendicular)")
 
    Z = np.loadtxt("output_{:s}/CIR/diff1_equ_{:s}.dat".format(cir_date, cir_date))
@@ -539,23 +418,8 @@ if plot_diff1:
    plt.savefig("output_{:s}/CIR/diff1_mer_{:s}.png".format(cir_date, cir_date), dpi=200)
    plt.close()
 
-   Z = np.loadtxt("output_{:s}/CIR/diff1_1au_{:s}.dat".format(cir_date, cir_date))
-   plt.plot(Z[:,0], Z[:,1])
-   plt.title('Diffusion Model Perpendicular (1 au)')
-   plt.xlabel('days')
-   plt.ylabel('$\\kappa_{\\perp}$')
-   plt.xlim(0, 27.0)
-
-   data1DX.append(Z[:,0])
-   data1DY.append(Z[:,1])
-   data1DL.append('$\\kappa_{\\perp}$')
-
-   plt.savefig("output_{:s}/CIR/diff1_1au_{:s}.png".format(cir_date, cir_date), dpi=200)
-   plt.close()
-
 # ==================================================
 if plot_diff2:
-   quants += 1
    print("Plotting diffusion 2 (parallel)")
 
    Z = np.loadtxt("output_{:s}/CIR/diff2_equ_{:s}.dat".format(cir_date, cir_date))
@@ -583,32 +447,3 @@ if plot_diff2:
 
    plt.savefig("output_{:s}/CIR/diff2_mer_{:s}.png".format(cir_date, cir_date), dpi=200)
    plt.close()
-
-   Z = np.loadtxt("output_{:s}/CIR/diff2_1au_{:s}.dat".format(cir_date, cir_date))
-   plt.plot(Z[:,0], Z[:,1])
-   plt.title('Diffusion Model Parallel (1 au)')
-   plt.xlabel('days')
-   plt.ylabel('$\\kappa_{\\parallel}$')
-   plt.xlim(0, 27.0)
-
-   data1DX.append(Z[:,0])
-   data1DY.append(Z[:,1])
-   data1DL.append('$\\kappa_{\\parallel}$')
-
-   plt.savefig("output_{:s}/CIR/diff2_1au_{:s}.png".format(cir_date, cir_date), dpi=200)
-   plt.close()
-
-# ==================================================
-print("Plotting", quants, "1D quantities in composite figure")
-if quants > 0:
-   fig, axs = plt.subplots(nrows=quants, ncols=1, figsize=(10, 3*quants))
-
-   for i in range(quants):
-      axs[i].plot(data1DX[i], data1DY[i])
-      axs[i].set_ylabel(data1DL[i])
-
-   axs[quants-1].set_xlabel('days')
-   plt.xlim(0, 27.0)
-   plt.tight_layout()
-   plt.savefig("output_{:s}/CIR/composite_1au_{:s}.png".format(cir_date, cir_date), dpi=200)
-   plt.show()

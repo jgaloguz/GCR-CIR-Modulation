@@ -13,6 +13,8 @@
 
 using namespace Spectrum;
 
+// #define CONST_DIFF
+
 int main(int argc, char** argv)
 {
    DataContainer container;
@@ -51,7 +53,8 @@ int main(int argc, char** argv)
    container.Insert(gv_zeros);
 
 // Effective "mesh" resolution
-   double dmax = 0.1 * GSL_CONST_CGSM_ASTRONOMICAL_UNIT / unit_length_fluid;
+   double one_au =  GSL_CONST_CGSM_ASTRONOMICAL_UNIT / unit_length_fluid;
+   double dmax = 0.1 * one_au;
    container.Insert(dmax);
 
 // Name of file with MHD results
@@ -99,7 +102,7 @@ int main(int argc, char** argv)
    container.Clear();
 
 // Initial position
-   GeoVector init_pos(1.0 * GSL_CONST_CGSM_ASTRONOMICAL_UNIT / unit_length_fluid, 0.0, 0.0);
+   GeoVector init_pos(one_au, 0.0, 0.0);
    container.Insert(init_pos);
 
    simulation->AddInitial(InitialSpaceFixed(), container);
@@ -144,7 +147,7 @@ int main(int argc, char** argv)
    container.Insert(gv_zeros);
 
 // Radius
-   double inner_boundary = 0.1 * GSL_CONST_CGSM_ASTRONOMICAL_UNIT / unit_length_fluid;
+   double inner_boundary = 0.1 * one_au;
    container.Insert(inner_boundary);
 
    simulation->AddBoundary(BoundarySphereReflect(), container);
@@ -169,7 +172,7 @@ int main(int argc, char** argv)
    container.Insert(gv_zeros);
 
 // Radius
-   double outer_boundary = 5.0 * GSL_CONST_CGSM_ASTRONOMICAL_UNIT / unit_length_fluid;
+   double outer_boundary = 5.0 * one_au;
    container.Insert(outer_boundary);
 
    simulation->AddBoundary(BoundarySphereAbsorb(), container);
@@ -202,32 +205,64 @@ int main(int argc, char** argv)
 
    container.Clear();
 
-// Parallel mean free path
-   double lam0 = 1.5 * GSL_CONST_CGSM_ASTRONOMICAL_UNIT / unit_length_fluid;
-   container.Insert(lam0);
+#ifndef CONST_DIFF
+// Index of region with forward propagating Alfven wave density
+   int W_pls_idx = 1;
+   container.Insert(W_pls_idx);
 
-// Rigidity normalization factor
-   double R0 = 1.0e9 / unit_rigidity_particle;
-   container.Insert(R0);
+// Index of region with backward propagating Alfven wave density
+   int W_mns_idx = 2;
+   container.Insert(W_mns_idx);
 
-// Magnetic field normalization factor
-   double BmagE = 5.0e-5 / unit_magnetic_fluid;
-   container.Insert(BmagE);
+// Constant = correlation_length * sqrt(B)
+   double L_perp_times_sqrtB = 150.0 * (1.0e5 / unit_length_fluid) * sqrt(1.0e4 / unit_magnetic_fluid);
+   container.Insert(L_perp_times_sqrtB);
 
-// Power law slope for rigidity
-   double pow_law_R = 0.5;
-   container.Insert(pow_law_R);
+// Pass ownership of "diffusion" to simulation
+   simulation->AddDiffusion(DiffusionQLT_NLGC_AWSoM(), container);
+#else
+   double kap0 = 1.0;
+   double kap1 = 1.0;
+   if (argc > 6) {
+      kap0 = atof(argv[5]) / unit_diffusion_fluid;
+      kap1 = atof(argv[6]) / unit_diffusion_fluid;
+   };
 
-// Power law slope for magnetic field
-   double pow_law_B = -1.0;
-   container.Insert(pow_law_B);
+   if (MPI_Config::is_master) {
+      std::cerr << "CONSTANT DIFFUSION" << std::endl;
+      std::cerr << "k_para = "
+                << kap0 * unit_diffusion_fluid
+                << "cm^2 / s" << std::endl;
+      std::cerr << "k_perp = "
+                << kap1 * unit_diffusion_fluid
+                << "cm^2 / s" << std::endl;
+   };
 
-// Scaling constant (~0.5 * a^2 * 4)
-   double kap_rat = 0.15;
+// Base diffusion coefficient
+   container.Insert(kap0);
+
+// Kinetic energy normalization factor
+   double T0d = 0.2 * SPC_CONST_CGSM_GIGA_ELECTRON_VOLT / unit_energy_particle;
+   container.Insert(T0d);
+
+// Radius normalization factor
+   container.Insert(one_au);
+
+// Power law slope for kinetic energy
+   double pow_law_Td = 1.0;
+   container.Insert(pow_law_Td);
+
+// Power law slope for radius
+   double pow_law_r = 1.0;
+   container.Insert(pow_law_r);
+
+// Ratio of perpendicular to parallel diffusion
+   double kap_rat = kap1 / kap0;
    container.Insert(kap_rat);
 
 // Pass ownership of "diffusion" to simulation
-   simulation->AddDiffusion(DiffusionRigidityMagneticFieldPowerLawWithMagneticVariance(), container);
+   simulation->AddDiffusion(DiffusionKineticEnergyRadialDistancePowerLaw(), container);
+#endif
 
 //--------------------------------------------------------------------------------
 // Distribution 1 (spectrum)
@@ -305,11 +340,11 @@ int main(int argc, char** argv)
    container.Clear();
 
 // Number of bins
-   MultiIndex n_bins2(100, 0, 0);
+   MultiIndex n_bins2(50, 0, 0);
    container.Insert(n_bins2);
 
 // Smallest value
-   GeoVector minval2(init_t - 30.0 * one_day, 0.0, 0.0);
+   GeoVector minval2(init_t - 10.0 * one_day, 0.0, 0.0);
    container.Insert(minval2);
 
 // Largest value

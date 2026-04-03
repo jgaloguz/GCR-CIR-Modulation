@@ -468,7 +468,7 @@ const std::string diff_name_kinetic_energy_radial_distance_power_law = "Diffusio
 \author Vladimir Florinski
 \author Swati Sharma
 
-Parameters: (DiffusionBase), double kap0, double T0, double r0, double pow_law_T, double pow_law_r, double kap_rat, int stream_dep_idx, double u_up, double w_sh, double s_sh
+Parameters: (DiffusionBase), double kap0, double T0, double r0, double pow_law_T, double pow_law_r, double kap_rat
 */
 class DiffusionKineticEnergyRadialDistancePowerLaw : public DiffusionBase {
 
@@ -491,21 +491,6 @@ protected:
 
 //! Ratio of perpendicular to parallel diffusion (persistent)
    double kap_rat;
-
-//! Downstream dependance index (persistent)
-   int stream_dep_idx;
-
-//! Upstream flow (persistent)
-   double u_up;
-
-//! Width of shock (persistent)
-   double w_sh;
-   
-//! Shock strength (persistent)
-   double s_sh;
-
-//! Ratio of downstream to upstream value (persistent)
-   double dn_up_rat;
 
 //! Set up the diffusion model based on "params"
    void SetupDiffusion(bool construct) override;
@@ -803,40 +788,36 @@ public:
 };
 
 //----------------------------------------------------------------------------------------------------------------------------------------------------
-// DiffusionRigidityMagneticFieldPowerLawWithMagneticVariance class declaration
+// DiffusionQLT_NLGC_AWSoM class declaration
 //----------------------------------------------------------------------------------------------------------------------------------------------------
 
-//! Readable name of the DiffusionRigidityMagneticFieldPowerLawWithMagneticVariance class
-const std::string diff_name_rigidity_magnetic_field_power_law_with_magnetic_variance = "DiffusionRigidityMagneticFieldPowerLawWithMagneticVariance";
+//! Flag to correct magnetic variance
+#define DIFF_CORRECT_Z2
+
+//! Z^2 correction [erg cm^-3] = mp [g] * n0 [cm^-3] * V0^2 [cm^2 s^-2]
+const double Z2_diff = SPC_CONST_CGSM_MASS_PROTON * 4.0 * Sqr(5.0 * 1.0e5);
+
+//! Readable name of the DiffusionQLT_NLGC_AWSoM class
+const std::string diff_name_qlt_nlgc_awsom = "DiffusionQLT_NLGC_AWSoM";
 
 /*!
-\brief Full (perpendicular + parallel) diffusion, rigidity and magnetic field power law plus magnetic variance input
+\brief Full (perpendicular + parallel) diffusion, QLT for parallel, NLGC for perpendicular, taking variance and correlation length inputs from AWSoM
 \author Juan G Alonso Guzman
-\author Vladimir Florinski
 
-Parameters: (DiffusionBase), double lam0, double R0, double B0, double pow_law_R, double pow_law_B, double kap_rat
+Parameters: (DiffusionBase), int W_pls_idx, int W_mns_idx, double L_perp_times_sqrtB
 */
-class DiffusionRigidityMagneticFieldPowerLawWithMagneticVariance : public DiffusionBase {
+class DiffusionQLT_NLGC_AWSoM : public DiffusionBase {
 
 protected:
 
-//! Parallel mean free path (persistent)
-   double lam0;
+//! Index of region with forward propagating Alfven wave density
+   int W_pls_idx;
 
-//! Rigidity normalization factor (persistent)
-   double R0;
+//! Index of region with backward propagating Alfven wave density
+   int W_mns_idx;
 
-//! Magnetic field normalization factor (persistent)
-   double B0;
-
-//! Power law slope for rigidity (persistent)
-   double pow_law_R;
-
-//! Power law slope for magnetic field (persistent)
-   double pow_law_B;
-
-//! Ratio of perpendicular to parallel diffusion (persistent)
-   double kap_rat;
+//! Constant = correlation_length * sqrt(B)
+   double L_perp_times_sqrtB;
 
 //! Set up the diffusion model based on "params"
    void SetupDiffusion(bool construct) override;
@@ -847,16 +828,16 @@ protected:
 public:
 
 //! Default constructor
-   DiffusionRigidityMagneticFieldPowerLawWithMagneticVariance(void);
+   DiffusionQLT_NLGC_AWSoM(void);
 
 //! Copy constructor
-   DiffusionRigidityMagneticFieldPowerLawWithMagneticVariance(const DiffusionRigidityMagneticFieldPowerLawWithMagneticVariance& other);
+   DiffusionQLT_NLGC_AWSoM(const DiffusionQLT_NLGC_AWSoM& other);
 
 //! Destructor
-   ~DiffusionRigidityMagneticFieldPowerLawWithMagneticVariance() override = default;
+   ~DiffusionQLT_NLGC_AWSoM() override = default;
 
 //! Clone function
-   CloneFunctionDiffusion(DiffusionRigidityMagneticFieldPowerLawWithMagneticVariance);
+   CloneFunctionDiffusion(DiffusionQLT_NLGC_AWSoM);
 
 //! Compute derivative of diffusion coefficient in position or time
    // double GetDirectionalDerivative(int xyz) override;
