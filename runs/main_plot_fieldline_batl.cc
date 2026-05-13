@@ -25,7 +25,7 @@ int main(int argc, char** argv)
       if (mpi_config->is_master) {
          std::cout << "CIR date: " << cir_date << std::endl;
          std::filesystem::create_directory("output_" + cir_date);
-         std::filesystem::create_directory("output_" + cir_date + "/CIR");
+         std::filesystem::create_directory("output_" + cir_date + "/fieldlines");
       };
    } else {
       if (mpi_config->is_master) std::cout << "ERROR: No CIR date provided." << std::endl;
@@ -39,8 +39,8 @@ int main(int argc, char** argv)
 
    std::shared_ptr<ServerBaseBack> server_back = nullptr;
 
-   std::string fname_pattern = "/data001/cosmicrays_vf/Juan/SWMF/run_cir_"
-                             + cir_date + "/IH/IO2/3d__var_1_n00005000";
+   std::string fname_pattern = "../../SWMF/run_cir_" + cir_date
+                             + "/IH/IO2/3d__var_1_n00005000";
 
    if(mpi_config->is_boss) {
       server_back = std::make_unique<ServerBackType>(fname_pattern);
@@ -105,11 +105,16 @@ int main(int argc, char** argv)
 
    container.Clear();
 
-   GeoVector init_pos(2.0 * GSL_CONST_CGSM_ASTRONOMICAL_UNIT / unit_length_fluid, 0.0, 0.0);
-   init_pos.Rotate(gv_nz, M_2PI * (mpi_config->work_comm_rank - 1) / (mpi_config->work_comm_size - 1));
-   container.Insert(init_pos);
+   fname_pattern = "data/earth_position_" + cir_date + ".dat";
+   container.Insert(fname_pattern);
 
-   trajectory->AddInitial(InitialSpaceFixed(), container);
+   double scale = GSL_CONST_CGSM_ASTRONOMICAL_UNIT / unit_length_fluid;
+   container.Insert(scale);
+
+   bool random = false;
+   container.Insert(random);
+
+   trajectory->AddInitial(InitialSpaceTable(), container);
 
 //--------------------------------------------------------------------------------
 // Momentum initial condition
@@ -118,8 +123,8 @@ int main(int argc, char** argv)
    container.Clear();
 
 // Initial momentum
-   double MeV_kinetic_energy = 1000.0;
-   container.Insert(Mom(MeV_kinetic_energy * SPC_CONST_CGSM_MEGA_ELECTRON_VOLT / unit_energy_particle, specie));
+   double GeV_kinetic_energy = 1000.0;
+   container.Insert(Mom(GeV_kinetic_energy * SPC_CONST_CGSM_GIGA_ELECTRON_VOLT / unit_energy_particle, specie));
 
    trajectory->AddInitial(InitialMomentumShell(), container);
 
@@ -198,14 +203,16 @@ int main(int argc, char** argv)
       server_back->ServerFinish();
    }
    else if (mpi_config->is_worker) {
-      std::string trajectory_file = "output_" + cir_date + "/main_test_fieldline_"
-                                  + std::to_string(mpi_config->work_comm_rank)
-                                  + "_" + cir_date + ".lines";
-      trajectory->SetStart();
-      trajectory->Integrate();
-      trajectory->InterpretStatus();
-      trajectory->PrintCSV(trajectory_file, false);
-      std::cout << "Fieldline outputed to " << trajectory_file << std::endl;
+      std::string trajectory_file = "output_" + cir_date + "/fieldlines/fieldline_";
+      int reps = 1;
+      if (argc > 2) reps = atoi(argv[2]);
+      for (int i = 0; i < reps; i++) {
+         trajectory->SetStart();
+         trajectory->Integrate();
+         trajectory->InterpretStatus();
+         trajectory->PrintCSV(trajectory_file + std::to_string(i) + ".lines", false);
+         std::cout << "Field line outputted to " << trajectory_file + std::to_string(i) + ".lines" << std::endl;
+      };
       trajectory->StopBackground();
    };
 

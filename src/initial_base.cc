@@ -220,7 +220,7 @@ void InitialTable<tableClass>::SetupInitial(bool construct)
       std::cerr << "Reading initial vectors file in spherical coordinates." << std::endl;
    }
    else if (coord_type == "XYZ") {
-      std::cerr << "Reading initial vectors file in cartesian coordinates." << std::endl;
+      std::cerr << "Reading initial vectors file in Cartesian coordinates." << std::endl;
    }
    else {
       std::cerr << "Reading file of unrecognized initial quantities. "
@@ -235,7 +235,7 @@ void InitialTable<tableClass>::SetupInitial(bool construct)
 // TODO: the existing code didn't do what was intended - need to rewrite to operate on GeoVectors only
 // The redundant conversion to GeoVector type is necessary due to the templated nature of this class.
 //      if (coord_type == "RTP") GeoVector(entry).RTP_XYZ();
-//      initquant[i] = entry * scale;
+      initquant[i] = entry * scale;
    };
    init_file.close();
 

@@ -27,7 +27,7 @@ int main(int argc, char** argv)
    distro_obj.Restore(distroname);
    distro_obj.Print1D(0, infilename, true);
 
-// Open input analytic distro file
+// Open input distro file
    std::ifstream input_spectrum_file(infilename);
 
 // Read first two lines of distro file

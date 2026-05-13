@@ -63,7 +63,7 @@ const double unit_electric_server = unit_velocity_server * unit_magnetic_server 
 const double unit_pressure_server = 1.0;
 
 //! Angular velocity of rotating reference frame
-const double server_rot_rf_omega = M_2PI / (27.0 * 24.0 * 60.0 * 60.0) / unit_frequency_fluid;
+const double server_rot_rf_omega = M_2PI / (25.38 * 24.0 * 60.0 * 60.0) / unit_frequency_fluid;
 
 //! Magnetic field correction
 const double dB_server = 1.0 * 1.0e-5 / unit_magnetic_fluid;

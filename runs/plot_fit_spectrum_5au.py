@@ -6,7 +6,7 @@ import matplotlib.pyplot as plt
 from scipy.optimize import curve_fit
 from scipy.interpolate import interp1d
 from scipy.integrate import quad
-import sys
+import argparse
 
 # Broken power law
 def log_broken_pow_law(T, J, T_b, a1, a2, d):
@@ -15,16 +15,15 @@ def log_broken_pow_law(T, J, T_b, a1, a2, d):
 def broken_pow_law(T, J, T_b, a1, a2, d):
    return np.exp(log_broken_pow_law(T, J, T_b, a1, a2, d))
 
-# Check specie
-if len(sys.argv) < 2:
-   print("Error: data set must be specified.")
-   print("Please specify a year.")
-   exit(1)
+# Parse arguments
+parser = argparse.ArgumentParser(description="Plot and fit LISM spectra")
+parser.add_argument("year", type=str, help="Year of spectrum to fit. Possible values are in range [2007,2010] or [2018,2021].")
+args = parser.parse_args()
    
-print("Plotting results for year {:s}.".format(sys.argv[1]))
+print("Plotting results for year {:s}.".format(args.year))
 
 # Import data
-spectrum = np.loadtxt("data/spectrum-{:s}.txt".format(sys.argv[1]), skiprows=3)
+spectrum = np.loadtxt("data/spectrum-{:s}.txt".format(args.year), skiprows=3)
 energy = spectrum[:,0]
 flux = spectrum[:,1]
 guess_params = [50.0, 60.0, 0.5, 3.0, 5.0]
@@ -47,7 +46,7 @@ ax.tick_params(labelsize=20)
 ax.legend(fontsize = 20)
 
 plt.show()
-plt.savefig("spectrum-{:s}-fit.png".format(sys.argv[1]))
+plt.savefig("spectrum-{:s}-fit.png".format(args.year))
 plt.close(fig)
 print("Optimal Fit Parameters:")
 print(opt_params)

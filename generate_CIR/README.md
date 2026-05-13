@@ -18,14 +18,14 @@ git clone https://github.com/SWMFsoftware/SWMF_data.git
 Once SWMF is installed, you can generate the MHD results through the following procedure. In the top-level SWMF folder, run
 ```
 ./Config.pl -v=Empty,SC/BATSRUS,IH/BATSRUS
-./Config.pl -o=SC:u=Awsom,e=AwsomAnisoPiSA,g=6,8,8,ng=2
-./Config.pl -o=IH:u=Awsom,e=AwsomAnisoPiSA,g=8,8,8,ng=2
+./Config.pl -o=SC:u=Awsom,e=AwsomSA,g=6,8,8,ng=2
+./Config.pl -o=IH:u=Awsom,e=AwsomSA,g=8,8,8,ng=2
 make SWMF
 make rundir
 ```
-This will compile the code for execution and generate a run directory. Next, choose one of the dates for which to run the solar wind MHD model within the `run_params`. The subfolders are named in a `<YYMMDD>` format representing the starting date of the 27-day period that is being simulated up to a steady-state solution in corotating coordinates. Each of these subfolders contains a PFSS harmonics coefficients file `map_<YYMMDD>.dat`, computed from GONG magnetograms (https://gong.nso.edu/data/magmap/archive.html) as well as a parameters file with specific instructions for the simulation `PARAM.in`.
+This will compile the code for execution and generate a run directory. Next, choose one of the dates for which to run the solar wind MHD model. The available options are listed as subfolders named in a `<YYYYMMDD>` format representing the observed date of the stream interface for the CIR that is being simulated. This will correspond to the center of the 28-day interval for the steady-state MHD simulation corotating coordinates. Each of these subfolders contains a PFSS harmonics coefficients file `gong_map_<YYMMDD>.dat`, computed from GONG magnetograms (https://gong.nso.edu/data/magmap/archive.html) as well as a parameters file with specific instructions for the simulation `PARAM.in`.
 
-To proceed, rename the `rundir` folder `run_dir_<YYMMDD>` where `<YYMMDD>` is your choice of date from the available options.
+To proceed, rename the `rundir` folder `run_dir_<YYYYMMDD>` where `<YYYYMMDD>` is your choice of date from the available options.
 ```
 mv rundir run_cir_<YYMMDD>
 ```

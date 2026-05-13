@@ -423,7 +423,7 @@ void DistributionAnisotropyLISM::EvaluateValue(void)
    this->_value[1] = mom_rel[2];
 
 // Find relative momentum in LISM. Reuse "mom_rel" in EvaluateWeight().
-   mom_rel = this->_mom2 - RelFactor1(this->_mom2.Norm(), this->specie) * mass[this->specie] * U_LISM;
+   mom_rel = this->_mom2 - RelFactor1(this->_mom2.Norm(), this->specie) * SpeciesMasses[this->specie] * U_LISM;
 };
 
 /*!

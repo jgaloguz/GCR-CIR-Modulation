@@ -503,6 +503,9 @@ public:
 //! Default constructor
    DiffusionKineticEnergyRadialDistancePowerLaw(void);
 
+//! Constructor with arguments (to speed up construction of derived classes)
+   DiffusionKineticEnergyRadialDistancePowerLaw(const std::string& name_in, unsigned int specie_in, uint16_t status_in);
+
 //! Copy constructor
    DiffusionKineticEnergyRadialDistancePowerLaw(const DiffusionKineticEnergyRadialDistancePowerLaw& other);
 
@@ -517,6 +520,61 @@ public:
 
 //! Compute derivative of diffusion coefficient in mu
    double GetMuDerivative(void) override;
+};
+
+//----------------------------------------------------------------------------------------------------------------------------------------------------
+// DiffusionKineticEnergyRadialDistancePowerLawWithFlowProfile class declaration
+//----------------------------------------------------------------------------------------------------------------------------------------------------
+
+//! Readable name of the DiffusionKineticEnergyRadialDistancePowerLawWithFlowProfile class
+const std::string diff_name_kinetic_energy_radial_distance_power_law_with_flow_profile = "DiffusionKineticEnergyRadialDistancePowerLawWithFlowProfile";
+
+/*!
+\brief Full (perpendicular + parallel) diffusion, kinetic energy and radial distance power law
+\author Juan G Alonso Guzman
+\author Vladimir Florinski
+\author Swati Sharma
+
+Parameters: (DiffusionKineticEnergyRadialDistancePowerLaw), double dkap, double u0, double du
+*/
+class DiffusionKineticEnergyRadialDistancePowerLawWithFlowProfile : public DiffusionKineticEnergyRadialDistancePowerLaw {
+
+protected:
+
+//! Diffusion coefficient variation (persistent)
+   double dkap;
+
+//! Reference flow velocity (persistent)
+   double u0;
+
+//! Kappa upper limit (persistent)
+   double kap_max;
+
+//! Kappa lower limit (persistent)
+   double kap_min;
+
+//! Set up the diffusion model based on "params"
+   void SetupDiffusion(bool construct) override;
+
+//! Compute the diffusion coefficients
+   void EvaluateDiffusion(void) override;
+
+public:
+
+//! Default constructor
+   DiffusionKineticEnergyRadialDistancePowerLawWithFlowProfile(void);
+
+//! Copy constructor
+   DiffusionKineticEnergyRadialDistancePowerLawWithFlowProfile(const DiffusionKineticEnergyRadialDistancePowerLawWithFlowProfile& other);
+
+//! Destructor
+   ~DiffusionKineticEnergyRadialDistancePowerLawWithFlowProfile() override = default;
+
+//! Clone function
+   CloneFunctionDiffusion(DiffusionKineticEnergyRadialDistancePowerLawWithFlowProfile);
+
+//! Compute derivative of diffusion coefficient in position or time
+   double GetDirectionalDerivative(int xyz) override;
 };
 
 //----------------------------------------------------------------------------------------------------------------------------------------------------
@@ -830,6 +888,9 @@ public:
 //! Default constructor
    DiffusionQLT_NLGC_AWSoM(void);
 
+//! Constructor with arguments (to speed up construction of derived classes)
+   DiffusionQLT_NLGC_AWSoM(const std::string& name_in, unsigned int specie_in, uint16_t status_in);
+
 //! Copy constructor
    DiffusionQLT_NLGC_AWSoM(const DiffusionQLT_NLGC_AWSoM& other);
 
@@ -844,6 +905,62 @@ public:
 
 //! Compute derivative of diffusion coefficient in mu
    double GetMuDerivative(void) override;
+};
+
+//----------------------------------------------------------------------------------------------------------------------------------------------------
+// DiffusionQLT_or_NLGC_AWSoM class declaration
+//----------------------------------------------------------------------------------------------------------------------------------------------------
+
+//! Readable name of the DiffusionQLT_or_NLGC_AWSoM class
+const std::string diff_name_qlt_or_nlgc_awsom = "DiffusionQLT_or_NLGC_AWSoM";
+
+/*!
+\brief Full (perpendicular + parallel) diffusion with QLT for parallel or NLGC for perpendicular, taking variance and correlation length inputs from AWSoM, and the other taken as a kinetic energy with radial distance power law
+\author Juan G Alonso Guzman
+
+Parameters: (DiffusionQLT_NLGC_AWSoM) (DiffusionKineticEnergyRadialDistancePowerLaw)
+*/
+class DiffusionQLT_or_NLGC_AWSoM : public DiffusionQLT_NLGC_AWSoM {
+
+protected:
+
+//! Diffusion coefficient normalization factor (persistent)
+   double kap0;
+
+//! Kinetic Energy normalization factor (persistent)
+   double T0;
+
+//! Radial distance normalization factor (persistent)
+   double r0;
+
+//! Power law slope for kinetic energy (persistent)
+   double pow_law_T;
+
+//! Power law slope for radial distance (persistent)
+   double pow_law_r;
+
+//! Which coefficient to make empirical (persistent)
+   int which_kap;
+
+//! Set up the diffusion model based on "params"
+   void SetupDiffusion(bool construct) override;
+
+//! Compute the diffusion coefficients
+   void EvaluateDiffusion(void) override;
+
+public:
+
+//! Default constructor
+   DiffusionQLT_or_NLGC_AWSoM(void);
+
+//! Copy constructor
+   DiffusionQLT_or_NLGC_AWSoM(const DiffusionQLT_or_NLGC_AWSoM& other);
+
+//! Destructor
+   ~DiffusionQLT_or_NLGC_AWSoM() override = default;
+
+//! Clone function
+   CloneFunctionDiffusion(DiffusionQLT_or_NLGC_AWSoM);
 };
 
 };

@@ -1,6 +1,7 @@
 #include "src/server_config.hh"
 #include "src/background_server_batl.hh"
 #include "src/diffusion_other.hh"
+#include "geometry/coordinates.hh"
 #include <iostream>
 #include <iomanip>
 #include <fstream>
@@ -33,6 +34,41 @@ inline double correct_Z2(SpatialData spdata, double r)
    return Z2 / SPC_CONST_CGSM_MASS_PROTON;
 };
 
+double kappa_rr(const GeoVector bhat, const GeoVector pos, double kappa_perp, double kappa_para)
+{
+   int i,j;
+   GeoMatrix kappa_cart;
+   GeoMatrix kappa_sphr;
+   GeoMatrix CartToSphr;
+   GeoMatrix SphrToCart;
+   Metric<CoordinateSystem::Spherical> metric;
+
+// Compute diffusion tensor in Cartesian coordinates
+   for (i = 0; i < 3; i++) {
+      for (j = 0; j < 3; j++) {
+         kappa_cart[i][j] = kappa_perp * (i == j ? 1.0 : 0.0)
+                          + (kappa_para - kappa_perp) * bhat[i] * bhat[j];
+      };
+   };
+
+// Compute rotation matrices
+   GeoVector pos_sph = metric.PosToCurv(pos);
+   CartToSphr[0][0] = sin(pos_sph[1])*cos(pos_sph[2]);
+   CartToSphr[1][0] = cos(pos_sph[1])*cos(pos_sph[2]);
+   CartToSphr[2][0] = -sin(pos_sph[2]);
+   CartToSphr[0][1] = sin(pos_sph[1])*sin(pos_sph[2]);
+   CartToSphr[1][1] = cos(pos_sph[1])*sin(pos_sph[2]);
+   CartToSphr[2][1] = cos(pos_sph[2]);
+   CartToSphr[0][2] = cos(pos_sph[1]);
+   CartToSphr[1][2] = -sin(pos_sph[1]);
+   CartToSphr[2][2] = 0.0;
+   SphrToCart.Transpose(CartToSphr);
+
+// Transform to diffusion tensor from Cartesian to spherical
+   kappa_sphr = CartToSphr * kappa_cart * SphrToCart;
+   return kappa_sphr[0][0];
+};
+
 int main(int argc, char** argv)
 {
    int active_local_workers, workers_stopped;
@@ -41,8 +77,10 @@ int main(int argc, char** argv)
 
    SpatialData spdata;
    double t = 0.0;
-   int i,j,k;
+   int i, j, k, N;
    GeoVector pos = gv_zeros, vel = gv_zeros, mom = gv_zeros;
+   std::string cir_date;
+
    std::ofstream Den_file;
    std::ofstream Pth_file;
    std::ofstream AbsVel_file;
@@ -56,11 +94,12 @@ int main(int argc, char** argv)
    std::ofstream drift_file;
    std::ofstream diff1_file;
    std::ofstream diff2_file;
-   std::string cir_date;
+   std::ofstream diff3_file;
 
    std::shared_ptr<MPI_Config> mpi_config = std::make_shared<MPI_Config>(argc, argv);
-   if (argc > 1) {
+   if (argc > 2) {
       cir_date = argv[1];
+      N = atoi(argv[2]);
       if (mpi_config->is_master) {
          std::cout << "CIR date: " << cir_date << std::endl;
          std::filesystem::create_directory("output_" + cir_date);
@@ -69,7 +108,7 @@ int main(int argc, char** argv)
          std::cout << "Number of workers: " << mpi_config->n_workers << std::endl;
       };
    } else {
-      if (mpi_config->is_master) std::cout << "ERROR: No CIR date provided." << std::endl;
+      if (mpi_config->is_master) std::cout << "ERROR: No CIR date and/or number of data points per dimension provided." << std::endl;
       return 1;
    };
    MPI_Barrier(mpi_config->glob_comm);
@@ -80,8 +119,8 @@ int main(int argc, char** argv)
 
    std::shared_ptr<ServerBaseBack> server_back = nullptr;
 
-   std::string fname_pattern = "/data001/cosmicrays_vf/Juan/SWMF/run_cir_"
-                             + cir_date + "/IH/IO2/3d__var_1_n00005000";
+   std::string fname_pattern = "../../SWMF/run_cir_" + cir_date
+                             + "/IH/IO2/3d__var_1_n00005000";
 
    if (mpi_config->is_boss) {
       server_back = std::make_unique<ServerBackType>(fname_pattern);
@@ -150,7 +189,6 @@ int main(int argc, char** argv)
    }
    else if (mpi_config->is_worker) {
 
-      int i, j, k, N = 1000;
       double x_min = -1075.0 * Rs;
       double y_min = -1075.0 * Rs;
       double z_min = -1075.0 * Rs;
@@ -159,11 +197,11 @@ int main(int argc, char** argv)
       double dz = 2150.0 * Rs / (N-1);
       double rad_vel;
       double polarity, r_L;
-      double diff1, diff2;
+      double diff1, diff2, diff3;
       GeoVector drift_vel;
       spdata._mask = BACKGROUND_ALL | BACKGROUND_gradU | BACKGROUND_gradB;
 
-      double one_au = GSL_CONST_CGSM_ASTRONOMICAL_UNIT / unit_length_fluid;
+// Test a single point
       pos[0] = 1.0 * one_au;
       mom[0] = Mom(200.0 * SPC_CONST_CGSM_MEGA_ELECTRON_VOLT / unit_energy_particle, specie);
       vel[0] = Vel(mom[0], specie);
@@ -196,6 +234,7 @@ int main(int argc, char** argv)
       drift_file.open("output_" + cir_date + "/CIR/drift_equ_" + cir_date + ".dat");
       diff1_file.open("output_" + cir_date + "/CIR/diff1_equ_" + cir_date + ".dat");
       diff2_file.open("output_" + cir_date + "/CIR/diff2_equ_" + cir_date + ".dat");
+      diff3_file.open("output_" + cir_date + "/CIR/diff3_equ_" + cir_date + ".dat");
       
       pos = gv_zeros;
       for (i = 0; i < N; i++) {
@@ -215,6 +254,7 @@ int main(int argc, char** argv)
                drift_vel = gv_zeros;
                diff1 = 0.0;
                diff2 = 0.0;
+               diff3 = 0.0;
             }
             else {
                background.GetFields(t, pos, mom, spdata);
@@ -224,6 +264,7 @@ int main(int argc, char** argv)
                drift_vel = drift_numer(r_L, vel[0], spdata);
                diff1 = diffusion.GetComponent(0, t, pos, mom, spdata);
                diff2 = diffusion.GetComponent(1, t, pos, mom, spdata);
+               diff3 = kappa_rr(spdata.bhat, pos, diff1, diff2);
             };
             Den_file << std::setw(18) << spdata.n_dens * unit_number_density_fluid;
             Pth_file << std::setw(18) << spdata.p_ther * unit_pressure_fluid;
@@ -238,6 +279,7 @@ int main(int argc, char** argv)
             drift_file << std::setw(18) << drift_vel.Norm() / vel[0];
             diff1_file << std::setw(18) << diff1 * unit_diffusion_fluid;
             diff2_file << std::setw(18) << diff2 * unit_diffusion_fluid;
+            diff3_file << std::setw(18) << diff3 * unit_diffusion_fluid;
          };
          Den_file << std::endl;
          Pth_file << std::endl;
@@ -252,6 +294,7 @@ int main(int argc, char** argv)
          drift_file << std::endl;
          diff1_file << std::endl;
          diff2_file << std::endl;
+         diff3_file << std::endl;
       };
       Den_file.close();
       Pth_file.close();
@@ -266,6 +309,7 @@ int main(int argc, char** argv)
       drift_file.close();
       diff1_file.close();
       diff2_file.close();
+      diff3_file.close();
 
       Den_file.open("output_" + cir_date + "/CIR/den_mer_" + cir_date + ".dat");
       Pth_file.open("output_" + cir_date + "/CIR/pth_mer_" + cir_date + ".dat");
@@ -280,6 +324,7 @@ int main(int argc, char** argv)
       drift_file.open("output_" + cir_date + "/CIR/drift_mer_" + cir_date + ".dat");
       diff1_file.open("output_" + cir_date + "/CIR/diff1_mer_" + cir_date + ".dat");
       diff2_file.open("output_" + cir_date + "/CIR/diff2_mer_" + cir_date + ".dat");
+      diff3_file.open("output_" + cir_date + "/CIR/diff3_mer_" + cir_date + ".dat");
       
       pos = gv_zeros;
       for (i = 0; i < N; i++) {
@@ -299,6 +344,7 @@ int main(int argc, char** argv)
                drift_vel = gv_zeros;
                diff1 = 0.0;
                diff2 = 0.0;
+               diff3 = 0.0;
             }
             else {
                background.GetFields(t, pos, mom, spdata);
@@ -308,6 +354,7 @@ int main(int argc, char** argv)
                drift_vel = drift_numer(r_L, vel[0], spdata);
                diff1 = diffusion.GetComponent(0, t, pos, mom, spdata);
                diff2 = diffusion.GetComponent(1, t, pos, mom, spdata);
+               diff3 = kappa_rr(spdata.bhat, pos, diff1, diff2);
             };
             Den_file << std::setw(18) << spdata.n_dens * unit_number_density_fluid;
             Pth_file << std::setw(18) << spdata.p_ther * unit_pressure_fluid;
@@ -322,6 +369,7 @@ int main(int argc, char** argv)
             drift_file << std::setw(18) << drift_vel.Norm() / vel[0];
             diff1_file << std::setw(18) << diff1 * unit_diffusion_fluid;
             diff2_file << std::setw(18) << diff2 * unit_diffusion_fluid;
+            diff3_file << std::setw(18) << diff3 * unit_diffusion_fluid;
          };
          Den_file << std::endl;
          Pth_file << std::endl;
@@ -336,6 +384,7 @@ int main(int argc, char** argv)
          drift_file << std::endl;
          diff1_file << std::endl;
          diff2_file << std::endl;
+         diff3_file << std::endl;
       };
       Den_file.close();
       Pth_file.close();
@@ -350,6 +399,7 @@ int main(int argc, char** argv)
       drift_file.close();
       diff1_file.close();
       diff2_file.close();
+      diff3_file.close();
 
       background.StopServerFront();
       std::cout << "Background samples outputted to file." << std::endl;

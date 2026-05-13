@@ -713,7 +713,7 @@ void ServerCartesianFront::GetVariables(double t, const GeoVector& pos, SpatialD
 
    bidx = RequestBlock();
 
-// If "block_pri" or "block_sec" is the position owner (based on the call to RequestBlock), we don't need to acccess the cache
+// If "block_pri" or "block_sec" is the position owner (based on the call to RequestBlock), we don't need to access the cache
    if (block_pri->GetNode() != bidx) {
       if (block_sec->GetNode() == bidx) block_pri = block_sec;
       else block_pri = cache_line[bidx];

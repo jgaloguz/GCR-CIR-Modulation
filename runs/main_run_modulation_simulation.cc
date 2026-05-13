@@ -9,11 +9,13 @@
 #include "src/initial_momentum.hh"
 #include <iostream>
 #include <iomanip>
+#include <fstream>
 #include <filesystem>
+#include <cstdlib>
 
 using namespace Spectrum;
 
-// #define CONST_DIFF
+#define CONST_DIFF 0
 
 int main(int argc, char** argv)
 {
@@ -72,8 +74,8 @@ int main(int argc, char** argv)
       if (MPI_Config::is_master) std::cout << "ERROR: No CIR date provided." << std::endl;
       exit(1);
    };
-   std::string fname_pattern = "/data001/cosmicrays_vf/Juan/SWMF/run_cir_"
-                             + cir_date + "/IH/IO2/3d__var_1_n00005000";
+   std::string fname_pattern = "../../SWMF/run_cir_" + cir_date
+                             + "/IH/IO2/3d__var_1_n00005000";
 
    simulation->AddBackground(BackgroundServerBATL(), container, fname_pattern);
 
@@ -83,14 +85,8 @@ int main(int argc, char** argv)
 
    container.Clear();
 
-// Initial time
+// Initial time - set implicitly by the position of Earth each day according to SWMF
    double init_t = 0.0;
-   double one_day = 60.0 * 60.0 * 24.0 / unit_time_fluid;
-   std::string init_time = "0.0";
-   if (argc > 4) {
-      init_time = argv[4];
-      init_t = atof(argv[4]) * one_day;
-   };
    container.Insert(init_t);
 
    simulation->AddInitial(InitialTimeFixed(), container);
@@ -101,8 +97,32 @@ int main(int argc, char** argv)
 
    container.Clear();
 
-// Initial position
-   GeoVector init_pos(one_au, 0.0, 0.0);
+// Initial position - set by the position of Earth
+   std::string init_time = "0.0";
+   if (argc > 4) init_time = argv[4];
+
+   GeoVector earth_pos;
+   if (MPI_Config::is_master) {
+      std::string command_str = "python compute_earth_position.py " + cir_date + " --time " + init_time;
+      const char* command_char = command_str.c_str();
+      std::system(command_char);
+      std::ifstream EarthPos_file;
+      EarthPos_file.open("output_" + cir_date + "/earth_position_" + cir_date + ".dat");
+      EarthPos_file >> earth_pos[0];
+      EarthPos_file >> earth_pos[1];
+      EarthPos_file >> earth_pos[2];
+      EarthPos_file.close();
+      std::cerr << "earth_pos = "
+                << earth_pos
+                << " au" << std::endl;
+      for (int cpu = 1; cpu < MPI_Config::glob_comm_size; cpu++) {
+         MPI_Send(earth_pos.Data(), 3, MPI_DOUBLE, cpu, 1001, MPI_Config::glob_comm);
+      };
+   }
+   else {
+      MPI_Recv(earth_pos.Data(), 3, MPI_DOUBLE, 0, 1001, MPI_Config::glob_comm, MPI_STATUS_IGNORE);
+   };
+   GeoVector init_pos = earth_pos * one_au;
    container.Insert(init_pos);
 
    simulation->AddInitial(InitialSpaceFixed(), container);
@@ -141,6 +161,7 @@ int main(int argc, char** argv)
    std::vector<int> actions_Sun;
    actions_Sun.push_back(-1);
    actions_Sun.push_back(-1);
+   actions_Sun.push_back(-1);
    container.Insert(actions_Sun);
 
 // Origin
@@ -164,6 +185,7 @@ int main(int argc, char** argv)
 
 // Action
    std::vector<int> actions_outer;
+   actions_outer.push_back(0);
    actions_outer.push_back(0);
    actions_outer.push_back(0);
    container.Insert(actions_outer);
@@ -191,9 +213,11 @@ int main(int argc, char** argv)
    std::vector<int> actions_time;
    actions_time.push_back(-1);
    actions_time.push_back(-1);
+   actions_time.push_back(-1);
    container.Insert(actions_time);
    
 // Max duration of the trajectory
+   double one_day = 24.0 * 60.0 * 60.0 / unit_time_fluid;
    double maxtime = -one_day * 365.0;
    container.Insert(maxtime);
 
@@ -205,7 +229,7 @@ int main(int argc, char** argv)
 
    container.Clear();
 
-#ifndef CONST_DIFF
+#if CONST_DIFF < 3
 // Index of region with forward propagating Alfven wave density
    int W_pls_idx = 1;
    container.Insert(W_pls_idx);
@@ -217,10 +241,9 @@ int main(int argc, char** argv)
 // Constant = correlation_length * sqrt(B)
    double L_perp_times_sqrtB = 150.0 * (1.0e5 / unit_length_fluid) * sqrt(1.0e4 / unit_magnetic_fluid);
    container.Insert(L_perp_times_sqrtB);
+#endif
 
-// Pass ownership of "diffusion" to simulation
-   simulation->AddDiffusion(DiffusionQLT_NLGC_AWSoM(), container);
-#else
+#if CONST_DIFF > 0
    double kap0 = 1.0;
    double kap1 = 1.0;
    if (argc > 6) {
@@ -228,18 +251,12 @@ int main(int argc, char** argv)
       kap1 = atof(argv[6]) / unit_diffusion_fluid;
    };
 
-   if (MPI_Config::is_master) {
-      std::cerr << "CONSTANT DIFFUSION" << std::endl;
-      std::cerr << "k_para = "
-                << kap0 * unit_diffusion_fluid
-                << "cm^2 / s" << std::endl;
-      std::cerr << "k_perp = "
-                << kap1 * unit_diffusion_fluid
-                << "cm^2 / s" << std::endl;
-   };
-
 // Base diffusion coefficient
+#if CONST_DIFF == 1
    container.Insert(kap0);
+#else
+   container.Insert(kap1);
+#endif
 
 // Kinetic energy normalization factor
    double T0d = 0.2 * SPC_CONST_CGSM_GIGA_ELECTRON_VOLT / unit_energy_particle;
@@ -256,13 +273,46 @@ int main(int argc, char** argv)
    double pow_law_r = 1.0;
    container.Insert(pow_law_r);
 
+#if CONST_DIFF == 1
+// Which coefficient to make empirical
+   int which_kap = 0;
+   container.Insert(which_kap);
+#elif CONST_DIFF == 2
+// Which coefficient to make empirical
+   int which_kap = 1;
+   container.Insert(which_kap);
+#elif CONST_DIFF >= 3
 // Ratio of perpendicular to parallel diffusion
-   double kap_rat = kap1 / kap0;
+   double kap_rat = kap0 / kap1;
    container.Insert(kap_rat);
+#endif
+
+#endif
 
 // Pass ownership of "diffusion" to simulation
+#if CONST_DIFF == 0
+   simulation->AddDiffusion(DiffusionQLT_NLGC_AWSoM(), container);
+#elif CONST_DIFF == 1 || CONST_DIFF == 2
+   simulation->AddDiffusion(DiffusionQLT_or_NLGC_AWSoM(), container);
+#elif CONST_DIFF == 3
    simulation->AddDiffusion(DiffusionKineticEnergyRadialDistancePowerLaw(), container);
 #endif
+
+   if (MPI_Config::is_master) {
+#if CONST_DIFF > 0
+      std::cerr << "CONSTANT DIFFUSION" << std::endl;
+#endif
+#if CONST_DIFF == 1 || CONST_DIFF == 3
+      std::cerr << "k_perp = "
+                << kap0 * unit_diffusion_fluid
+                << " cm^2 / s" << std::endl;
+#endif
+#if CONST_DIFF == 2 || CONST_DIFF == 3
+      std::cerr << "k_para = "
+                << kap1 * unit_diffusion_fluid
+                << " cm^2 / s" << std::endl;
+#endif
+   };
 
 //--------------------------------------------------------------------------------
 // Distribution 1 (spectrum)
@@ -379,11 +429,68 @@ int main(int argc, char** argv)
    double val_cold2 = 0.0;
    container.Insert(val_cold2);
 
-// Value for which time to bin
+// Value for which time to bin (final)
    int val_time2 = 1;
    container.Insert(val_time2);
 
    simulation->AddDistribution(DistributionTimeUniform(), container);
+
+//--------------------------------------------------------------------------------
+// Distribution 3 (exit position)
+//--------------------------------------------------------------------------------
+
+// Parameters for distribution
+   container.Clear();
+
+// Number of bins
+   MultiIndex n_bins3(1, 90, 180);
+   container.Insert(n_bins3);
+
+// Smallest value
+   GeoVector minval3(outer_boundary - 0.1 * one_au, 0.0, 0.0);
+   container.Insert(minval3);
+
+// Largest value
+   GeoVector maxval3(outer_boundary + 0.1 * one_au, M_PI, M_2PI);
+   container.Insert(maxval3);
+
+// Linear or logarithmic bins
+   MultiIndex log_bins3(0, 0, 0);
+   container.Insert(log_bins3);
+
+// Add outlying events to the end bins
+   MultiIndex bin_outside3(1, 0, 0);
+   container.Insert(bin_outside3);
+
+// Physical units of the distro variable
+   double unit_distro3 = 1.0;
+   container.Insert(unit_distro3);
+
+// Physical units of the bin variable
+   GeoVector unit_val3 = {unit_length_fluid, 1.0, 1.0};
+   container.Insert(unit_val3);
+
+// Keep records
+   bool keep_records3 = false;
+   container.Insert(keep_records3);
+
+// Value for the "hot" condition
+   double val_hot3 = 1.0;
+   container.Insert(val_hot3);
+
+// Value for the "cold" condition
+   double val_cold3 = 0.0;
+   container.Insert(val_cold3);
+
+// Value for which time to bin (final)
+   int val_time3 = 1;
+   container.Insert(val_time3);
+
+// Value for which coordinate system to use (spherical)
+   int val_coord3 = 1;
+   container.Insert(val_coord3);
+
+   simulation->AddDistribution(DistributionPositionUniform(), container);
 
 //--------------------------------------------------------------------------------
 // Run the simulation

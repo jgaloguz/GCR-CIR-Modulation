@@ -1,46 +1,44 @@
-# Code to plot CIR modulation results
+# Code to plot simulated CIR along with measured ACE profile
 
 # Import libraries
 import matplotlib.pyplot as plt
 import numpy as np
 from matplotlib.colors import LogNorm
 import scipy.signal as spsig
-import sys
+import argparse
+
+# Parse arguments
+parser = argparse.ArgumentParser(description="Plot 1D time cuts of simulated and observed solar wind quantities")
+parser.add_argument("date", type=str, help="Date of CIR in YYYYMMDD format")
+parser.add_argument("zero_epoch", type=float, help="Time in days relative to CIR observed date to set as the zero epoch in plot. Possible values are any number in range [-10.0,10.0].")
+args = parser.parse_args()
 
 # Constants
 m_p = 1.67262192e-24
 
-# Check CIR date
-if len(sys.argv) > 1:
-   cir_date = sys.argv[1]
-   print("CIR date: {:s}".format(cir_date))
-else:
-   print("ERROR: No CIR date provided.")
-   sys.exit(1)
-
 # Import ACE data
-ACE_SW = np.loadtxt("data/SI_{:s}_SW.txt".format(cir_date))
+ACE_SW = np.loadtxt("data/SI_{:s}_SW.txt".format(args.date))
 ACE_SW[:,4] = ACE_SW[:,4] / 1000
 ACE_SW[:,5] = m_p * ACE_SW[:,3] * ACE_SW[:,5] * 1.0e9
 
 labels = ["$|B|$ (nT)", "$|u|$ (km/s)", "$n$ (amu/cc)", "$T$ (kK)", "$Z^2$ (nerg cm$^{-3}$)"]
 
 # Import sim data
-CIR_epoch = 11.8
-idx_l = 297
-idx_h = 593
-
+Z = np.loadtxt("output_{:s}/CIR/mag_1au_{:s}.dat".format(args.date, args.date))
+N = np.size(Z, 0)
+idx_l = int(N * (14.0 + args.zero_epoch - 4.0) / 28.0)
+idx_h = int(N * (14.0 + args.zero_epoch + 4.0) / 28.0)
 SIM_SW = np.zeros((idx_h-idx_l,6))
-Z = np.loadtxt("output_{:s}/CIR/mag_1au_{:s}.dat".format(cir_date, cir_date))
-SIM_SW[:,0] = Z[idx_l:idx_h,0] - CIR_epoch
+
+SIM_SW[:,0] = Z[idx_l:idx_h,0] - args.zero_epoch
 SIM_SW[:,1] = Z[idx_l:idx_h,1] / 1.0e-5 # G --> nT
-Z = np.loadtxt("output_{:s}/CIR/vel_1au_{:s}.dat".format(cir_date, cir_date))
+Z = np.loadtxt("output_{:s}/CIR/vel_1au_{:s}.dat".format(args.date, args.date))
 SIM_SW[:,2] = Z[idx_l:idx_h,1] / 1.0e5 # cm/s --> km/s
-Z = np.loadtxt("output_{:s}/CIR/den_1au_{:s}.dat".format(cir_date, cir_date))
+Z = np.loadtxt("output_{:s}/CIR/den_1au_{:s}.dat".format(args.date, args.date))
 SIM_SW[:,3] = Z[idx_l:idx_h,1] 
-Z = np.loadtxt("output_{:s}/CIR/pth_1au_{:s}.dat".format(cir_date, cir_date))
+Z = np.loadtxt("output_{:s}/CIR/pth_1au_{:s}.dat".format(args.date, args.date))
 SIM_SW[:,4] = Z[idx_l:idx_h,1] / 10.0 / SIM_SW[:,3] / 1.0e6 / 1.380649e-23 / 1.0e3 # T = P / (n*k_B) and dyn/cm^2 --> Pa and cm^-3 --> m^-3 and K --> kK
-Z = np.loadtxt("output_{:s}/CIR/tur_enr_1au_{:s}.dat".format(cir_date, cir_date))
+Z = np.loadtxt("output_{:s}/CIR/tur_enr_1au_{:s}.dat".format(args.date, args.date))
 SIM_SW[:,5] = m_p * SIM_SW[:,3] * Z[idx_l:idx_h,1] * 1.0e9
 
 # Make plots
@@ -56,7 +54,7 @@ for i in range(5):
    else:
       plot_func = axs[i].plot
    plot_func(ACE_SW[:,0], ACE_SW[:,i+1], label="ACE")
-   plot_func(SIM_SW[:,0], SIM_SW[:,i+1], label="sim")
+   plot_func(SIM_SW[:,0], SIM_SW[:,i+1], label="AWSoM")
    axs[i].set_ylabel(labels[i], fontsize=20)
    axs[i].tick_params(labelsize=16)
    if i != 1 and i != 4:
@@ -64,6 +62,8 @@ for i in range(5):
    axs[i].legend(fontsize=20)
    axs[i].set_xlim(-4.0,4.0)
 
+axs[4].set_xlabel("time (days)", fontsize=20)
+axs[0].set_title("CIR {:s}".format(args.date), fontsize=24)
 plt.tight_layout()
-plt.savefig("output_{:s}/sim_vs_ACE{:s}.png".format(cir_date, cir_date), dpi=200)
+plt.savefig("output_{:s}/sim_vs_ACE_{:s}.png".format(args.date, args.date), dpi=200)
 # plt.show()

@@ -37,7 +37,7 @@ int main(int argc, char** argv)
    std::string cir_date;
    if(argc > 1) cir_date = argv[1];
    if(argc > 2) n_time = atoi(argv[2]);
-   if(argc > 3) low_epoch = atoi(argv[3]);
+   if(argc > 3) low_epoch = atof(argv[3]);
    std::ifstream input_spectrum_file;
    std::ofstream output_spectrum_file;
    std::string infilename;
@@ -85,7 +85,7 @@ int main(int argc, char** argv)
       for(day = 0; day < n_day; day++) {
          input_spectrum_file >> days;
          input_spectrum_file >> frac;
-         avg_days += -(days - time_dbl) * frac;
+         avg_days -= days * frac;
       };
 
 // Output integrated differential intensity and average residence time in days

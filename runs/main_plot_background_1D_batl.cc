@@ -1,10 +1,12 @@
 #include "src/server_config.hh"
 #include "src/background_server_batl.hh"
 #include "src/diffusion_other.hh"
+#include "geometry/coordinates.hh"
 #include <iostream>
 #include <iomanip>
 #include <fstream>
 #include <filesystem>
+#include <cstdlib>
 
 using namespace Spectrum;
 
@@ -33,11 +35,46 @@ inline double correct_Z2(SpatialData spdata, double r)
    return Z2 / SPC_CONST_CGSM_MASS_PROTON;
 };
 
-void print_1D_cuts(MultiIndex direction, std::string cir_date, BackgroundServerBATL *background, DiffusionQLT_NLGC_AWSoM *diffusion, SpatialData spdata, double mom0)
+double kappa_rr(const GeoVector bhat, const GeoVector pos, double kappa_perp, double kappa_para)
 {
-   int i, N = 1000;
+   int i,j;
+   GeoMatrix kappa_cart;
+   GeoMatrix kappa_sphr;
+   GeoMatrix CartToSphr;
+   GeoMatrix SphrToCart;
+   Metric<CoordinateSystem::Spherical> metric;
+
+// Compute diffusion tensor in Cartesian coordinates
+   for (i = 0; i < 3; i++) {
+      for (j = 0; j < 3; j++) {
+         kappa_cart[i][j] = kappa_perp * (i == j ? 1.0 : 0.0)
+                          + (kappa_para - kappa_perp) * bhat[i] * bhat[j];
+      };
+   };
+
+// Compute rotation matrices
+   GeoVector pos_sph = metric.PosToCurv(pos);
+   CartToSphr[0][0] = sin(pos_sph[1])*cos(pos_sph[2]);
+   CartToSphr[1][0] = cos(pos_sph[1])*cos(pos_sph[2]);
+   CartToSphr[2][0] = -sin(pos_sph[2]);
+   CartToSphr[0][1] = sin(pos_sph[1])*sin(pos_sph[2]);
+   CartToSphr[1][1] = cos(pos_sph[1])*sin(pos_sph[2]);
+   CartToSphr[2][1] = cos(pos_sph[2]);
+   CartToSphr[0][2] = cos(pos_sph[1]);
+   CartToSphr[1][2] = -sin(pos_sph[1]);
+   CartToSphr[2][2] = 0.0;
+   SphrToCart.Transpose(CartToSphr);
+
+// Transform to diffusion tensor from Cartesian to spherical
+   kappa_sphr = CartToSphr * kappa_cart * SphrToCart;
+   return kappa_sphr[0][0];
+};
+
+void print_1D_cuts(MultiIndex direction, std::string cir_date, BackgroundServerBATL *background, DiffusionQLT_NLGC_AWSoM *diffusion, SpatialData spdata, double mom0, int N)
+{
+   int i;
    double t = 0.0, l0 = 20.0 * Rs, l1 = 5.0 * one_au, dd;
-   double rad_vel, polarity, r_L, diff1, diff2;
+   double rad_vel, polarity, r_L, diff1, diff2, diff3;
    GeoVector pos, dir, drift_vel;
    GeoVector mom = gv_zeros, vel = gv_zeros;
    mom[0] = mom0;
@@ -56,6 +93,7 @@ void print_1D_cuts(MultiIndex direction, std::string cir_date, BackgroundServerB
    std::ofstream drift_file;
    std::ofstream diff1_file;
    std::ofstream diff2_file;
+   std::ofstream diff3_file;
 
    std::string dir_string = std::to_string(direction.i) + std::to_string(direction.j) + std::to_string(direction.k);
    std::cout << "Direction: " << dir_string << std::endl;
@@ -73,13 +111,13 @@ void print_1D_cuts(MultiIndex direction, std::string cir_date, BackgroundServerB
       drift_file.open("output_" + cir_date + "/CIR/drift_" + dir_string + "_" + cir_date + ".dat");
       diff1_file.open("output_" + cir_date + "/CIR/diff1_" + dir_string + "_" + cir_date + ".dat");
       diff2_file.open("output_" + cir_date + "/CIR/diff2_" + dir_string + "_" + cir_date + ".dat");
+      diff3_file.open("output_" + cir_date + "/CIR/diff3_" + dir_string + "_" + cir_date + ".dat");
 
       dir.x = direction.i;
       dir.y = direction.j;
       dir.z = direction.k;
       dir.Normalize();
       dd = (log(l1) - log(l0)) / (N - 1);
-      double dt = 0.0;
       for (i = 0; i < N; i++) {
          pos = dir * exp(log(l0) + dd * i);
 
@@ -89,7 +127,8 @@ void print_1D_cuts(MultiIndex direction, std::string cir_date, BackgroundServerB
          r_L = LarmorRadius(mom[0], spdata.Bmag, specie);
          drift_vel = drift_numer(r_L, vel[0], spdata);
          diff1 = diffusion->GetComponent(0, t, pos, mom, spdata);
-         diff2 = diffusion->GetComponent(1, t, pos, mom, spdata);   
+         diff2 = diffusion->GetComponent(1, t, pos, mom, spdata);
+         diff3 = kappa_rr(spdata.bhat, pos, diff1, diff2);
 
          Den_file << std::setw(18) << pos.Norm() / one_au
                   << std::setw(18) << spdata.n_dens * unit_number_density_fluid
@@ -130,6 +169,9 @@ void print_1D_cuts(MultiIndex direction, std::string cir_date, BackgroundServerB
          diff2_file << std::setw(18) << pos.Norm() / one_au 
                     << std::setw(18) << diff2 * unit_diffusion_fluid
                     << std::endl;
+         diff3_file << std::setw(18) << pos.Norm() / one_au 
+                    << std::setw(18) << diff3 * unit_diffusion_fluid
+                    << std::endl;
       };
 
       Den_file.close();
@@ -145,6 +187,7 @@ void print_1D_cuts(MultiIndex direction, std::string cir_date, BackgroundServerB
       drift_file.close();
       diff1_file.close();
       diff2_file.close();
+      diff3_file.close();
 };
 
 int main(int argc, char** argv)
@@ -155,8 +198,11 @@ int main(int argc, char** argv)
 
    SpatialData spdata;
    double t = 0.0;
-   int i,j,k;
+   int i, j, k, N;
    GeoVector pos = gv_zeros, vel = gv_zeros, mom = gv_zeros;
+   std::string cir_date, N_str;
+
+   std::ifstream EarthPos_file;
    std::ofstream Den_file;
    std::ofstream Pth_file;
    std::ofstream AbsVel_file;
@@ -170,11 +216,13 @@ int main(int argc, char** argv)
    std::ofstream drift_file;
    std::ofstream diff1_file;
    std::ofstream diff2_file;
-   std::string cir_date;
+   std::ofstream diff3_file;
 
    std::shared_ptr<MPI_Config> mpi_config = std::make_shared<MPI_Config>(argc, argv);
-   if (argc > 1) {
+   if (argc > 2) {
       cir_date = argv[1];
+      N_str = argv[2];
+      N = atoi(argv[2]);
       if (mpi_config->is_master) {
          std::cout << "CIR date: " << cir_date << std::endl;
          std::filesystem::create_directory("output_" + cir_date);
@@ -183,7 +231,7 @@ int main(int argc, char** argv)
          std::cout << "Number of workers: " << mpi_config->n_workers << std::endl;
       };
    } else {
-      if (mpi_config->is_master) std::cout << "ERROR: No CIR date provided." << std::endl;
+      if (mpi_config->is_master) std::cout << "ERROR: No CIR date and/or number of data points per dimension provided." << std::endl;
       return 1;
    };
    MPI_Barrier(mpi_config->glob_comm);
@@ -194,8 +242,8 @@ int main(int argc, char** argv)
 
    std::shared_ptr<ServerBaseBack> server_back = nullptr;
 
-   std::string fname_pattern = "/data001/cosmicrays_vf/Juan/SWMF/run_cir_"
-                             + cir_date + "/IH/IO2/3d__var_1_n00005000";
+   std::string fname_pattern = "../../SWMF/run_cir_" + cir_date
+                             + "/IH/IO2/3d__var_1_n00005000";
 
    if (mpi_config->is_boss) {
       server_back = std::make_unique<ServerBackType>(fname_pattern);
@@ -264,19 +312,13 @@ int main(int argc, char** argv)
    }
    else if (mpi_config->is_worker) {
 
-      int i, j, k, N = 1000;
-      double x_min = -1075.0 * Rs;
-      double y_min = -1075.0 * Rs;
-      double z_min = -1075.0 * Rs;
-      double dx = 2150.0 * Rs / (N-1);
-      double dy = 2150.0 * Rs / (N-1);
-      double dz = 2150.0 * Rs / (N-1);
       double rad_vel;
       double polarity, r_L;
-      double diff1, diff2;
+      double diff1, diff2, diff3;
       GeoVector drift_vel;
       spdata._mask = BACKGROUND_ALL | BACKGROUND_gradU | BACKGROUND_gradB;
 
+// Test a single point
       pos[0] = 1.0 * one_au;
       mom[0] = Mom(200.0 * SPC_CONST_CGSM_MEGA_ELECTRON_VOLT / unit_energy_particle, specie);
       vel[0] = Vel(mom[0], specie);
@@ -309,62 +351,78 @@ int main(int argc, char** argv)
       drift_file.open("output_" + cir_date + "/CIR/drift_1au_" + cir_date + ".dat");
       diff1_file.open("output_" + cir_date + "/CIR/diff1_1au_" + cir_date + ".dat");
       diff2_file.open("output_" + cir_date + "/CIR/diff2_1au_" + cir_date + ".dat");
+      diff3_file.open("output_" + cir_date + "/CIR/diff3_1au_" + cir_date + ".dat");
 
-      pos[0] = one_au;
-      pos[1] = 0.0;
-      pos[2] = 0.0;
-      double dt = 27.0 * one_day / N;
+// Run python script to populate Earth positions, then read the positions
+      std::string command_str = "python compute_earth_position.py " + cir_date + " --num " + N_str;
+      const char* command_char = command_str.c_str();
+      std::system(command_char);
+      GeoVector earth_pos[N];
+      EarthPos_file.open("output_" + cir_date + "/earth_position_" + cir_date + ".dat");
       for (i = 0; i < N; i++) {
-// Frame rotates CCW in the xy-plane, so steady-state data should be sampled CW
-         t = i * dt;
+         EarthPos_file >> earth_pos[i][0];
+         EarthPos_file >> earth_pos[i][1];
+         EarthPos_file >> earth_pos[i][2];
+      };
+      EarthPos_file.close();
 
+      double t_plot = -14.0 * one_day;
+      double dt_plot = 28.0 * one_day / (N-1);
+      for (i = 0; i < N; i++) {
+// Frame rotates CCW in the xy-plane, so steady-state data should be sampled CW. However, the `earth_pos` vector rotates in the HGI frame, so no additional time shift is necessary.
+         pos = earth_pos[i] * one_au;
          background.GetFields(t, pos, mom, spdata);
          rad_vel = UnitVec(pos) * UnitVec(spdata.Uvec);
          polarity = (spdata.Bvec * pos >= 0.0 ? 1.0 : -1.0);
          r_L = LarmorRadius(mom[0], spdata.Bmag, specie);
          drift_vel = drift_numer(r_L, vel[0], spdata);
          diff1 = diffusion.GetComponent(0, t, pos, mom, spdata);
-         diff2 = diffusion.GetComponent(1, t, pos, mom, spdata);   
+         diff2 = diffusion.GetComponent(1, t, pos, mom, spdata);
+         diff3 = kappa_rr(spdata.bhat, pos, diff1, diff2);
 
-         Den_file << std::setw(18) << t / one_day
+         Den_file << std::setw(18) << t_plot / one_day
                   << std::setw(18) << spdata.n_dens * unit_number_density_fluid
                   << std::endl;
-         Pth_file << std::setw(18) << t / one_day
+         Pth_file << std::setw(18) << t_plot / one_day
                   << std::setw(18) << spdata.p_ther * unit_pressure_fluid
                   << std::endl;
-         AbsVel_file << std::setw(18) << t / one_day 
+         AbsVel_file << std::setw(18) << t_plot / one_day 
                      << std::setw(18) << spdata.Uvec.Norm() * unit_velocity_fluid
                      << std::endl;
-         RadVel_file << std::setw(18) << t / one_day 
+         RadVel_file << std::setw(18) << t_plot / one_day 
                      << std::setw(18) << rad_vel
                      << std::endl;
-         DivVel_file << std::setw(18) << t / one_day 
+         DivVel_file << std::setw(18) << t_plot / one_day 
                      << std::setw(18) << spdata.divU() * unit_velocity_fluid / unit_length_fluid
                      << std::endl;
-         AbsMag_file << std::setw(18) << t / one_day 
+         AbsMag_file << std::setw(18) << t_plot / one_day 
                      << std::setw(18) << spdata.Bmag * unit_magnetic_fluid
                      << std::endl;
-         PolMag_file << std::setw(18) << t / one_day 
+         PolMag_file << std::setw(18) << t_plot / one_day 
                      << std::setw(18) << polarity
                      << std::endl;
-         dmax_file << std::setw(18) << t / one_day 
+         dmax_file << std::setw(18) << t_plot / one_day 
                    << std::setw(18) << spdata.dmax
                    << std::endl;
-         HetFlx_file << std::setw(18) << t / one_day 
+         HetFlx_file << std::setw(18) << t_plot / one_day 
                      << std::setw(18) << spdata.region[0]
                      << std::endl;
-         TurEnr_file << std::setw(18) << t / one_day 
+         TurEnr_file << std::setw(18) << t_plot / one_day 
                      << std::setw(18) << correct_Z2(spdata, one_au)
                      << std::endl;
-         drift_file << std::setw(18) << t / one_day 
+         drift_file << std::setw(18) << t_plot / one_day 
                     << std::setw(18) << drift_vel.Norm() / vel[0]
                     << std::endl;
-         diff1_file << std::setw(18) << t / one_day 
+         diff1_file << std::setw(18) << t_plot / one_day 
                     << std::setw(18) << diff1 * unit_diffusion_fluid
                     << std::endl;
-         diff2_file << std::setw(18) << t / one_day 
+         diff2_file << std::setw(18) << t_plot / one_day 
                     << std::setw(18) << diff2 * unit_diffusion_fluid
                     << std::endl;
+         diff3_file << std::setw(18) << t_plot / one_day 
+                    << std::setw(18) << diff3 * unit_diffusion_fluid
+                    << std::endl;
+         t_plot += dt_plot;
       };
 
       Den_file.close();
@@ -380,20 +438,21 @@ int main(int argc, char** argv)
       drift_file.close();
       diff1_file.close();
       diff2_file.close();
+      diff3_file.close();
 
       MultiIndex direction;
       direction[0] = 1; direction[1] = 0; direction[2] = 0;
-      print_1D_cuts(direction, cir_date, &background, &diffusion, spdata, mom[0]);
+      print_1D_cuts(direction, cir_date, &background, &diffusion, spdata, mom[0], N);
       direction[0] = -1; direction[1] = 0; direction[2] = 0;
-      print_1D_cuts(direction, cir_date, &background, &diffusion, spdata, mom[0]);
+      print_1D_cuts(direction, cir_date, &background, &diffusion, spdata, mom[0], N);
       direction[0] = 0; direction[1] = 1; direction[2] = 0;
-      print_1D_cuts(direction, cir_date, &background, &diffusion, spdata, mom[0]);
+      print_1D_cuts(direction, cir_date, &background, &diffusion, spdata, mom[0], N);
       direction[0] = 0; direction[1] = -1; direction[2] = 0;
-      print_1D_cuts(direction, cir_date, &background, &diffusion, spdata, mom[0]);
+      print_1D_cuts(direction, cir_date, &background, &diffusion, spdata, mom[0], N);
       direction[0] = 0; direction[1] = 0; direction[2] = 1;
-      print_1D_cuts(direction, cir_date, &background, &diffusion, spdata, mom[0]);
+      print_1D_cuts(direction, cir_date, &background, &diffusion, spdata, mom[0], N);
       direction[0] = 0; direction[1] = 0; direction[2] = -1;
-      print_1D_cuts(direction, cir_date, &background, &diffusion, spdata, mom[0]);
+      print_1D_cuts(direction, cir_date, &background, &diffusion, spdata, mom[0], N);
 
       background.StopServerFront();
       std::cout << "Background samples outputted to file." << std::endl;
