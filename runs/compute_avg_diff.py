@@ -30,7 +30,7 @@ print("kappa_para arithmetic average (1au) = {:.2e} cm^2 s^-1".format(np.mean(di
 print("kappa_perp standard deviation (1au) = {:.2e} cm^2 s^-1".format(np.std(diff1_magn)))
 print("kappa_para standard deviation (1au) = {:.2e} cm^2 s^-1".format(np.std(diff2_magn)))
 
-# Fit radial cuts with power law
+# Fit radial and energy cuts with power laws
 directions = ["100", "-100", "010", "0-10", "001", "00-1"]
 slope_perp = []
 slope_para = []
@@ -43,3 +43,14 @@ for direction in directions:
 	slope_para.append(popt[0])
 print("mean kappa_perp radial power slope: {:.2f}".format(np.mean(slope_perp)))
 print("mean kappa_para radial power slope: {:.2f}".format(np.mean(slope_para)))
+slope_perp = []
+slope_para = []
+for direction in directions:
+	diff1_data = np.loadtxt("output_{:s}/CIR/diff1_E_{:s}_{:s}.dat".format(args.date, direction, args.date))
+	popt, pcov = curve_fit(line, np.log(diff1_data[:,0]), np.log(diff1_data[:,1]))
+	slope_perp.append(popt[0])
+	diff2_data = np.loadtxt("output_{:s}/CIR/diff2_E_{:s}_{:s}.dat".format(args.date, direction, args.date))
+	popt, pcov = curve_fit(line, np.log(diff2_data[:,0]), np.log(diff2_data[:,1]))
+	slope_para.append(popt[0])
+print("mean kappa_perp energy power slope: {:.2f}".format(np.mean(slope_perp)))
+print("mean kappa_para energy power slope: {:.2f}".format(np.mean(slope_para)))

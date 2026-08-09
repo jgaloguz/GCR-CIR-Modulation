@@ -697,12 +697,14 @@ void DiffusionKineticEnergyRadialDistancePowerLaw::SetupDiffusion(bool construct
 {
 // The parent version must be called explicitly if not constructing
    if (!construct) DiffusionBase::SetupDiffusion(false);
-   container.Read(kap0);
+   container.Read(kap_para);
    container.Read(T0);
    container.Read(r0);
-   container.Read(pow_law_T);
-   container.Read(pow_law_r);
-   container.Read(kap_rat);
+   container.Read(pow_law_T_para);
+   container.Read(pow_law_r_para);
+   container.Read(kap_perp);
+   container.Read(pow_law_T_perp);
+   container.Read(pow_law_r_perp);
 };
 
 /*!
@@ -713,8 +715,8 @@ void DiffusionKineticEnergyRadialDistancePowerLaw::SetupDiffusion(bool construct
 void DiffusionKineticEnergyRadialDistancePowerLaw::EvaluateDiffusion(void)
 {
    if (comp_eval == 2) return;
-   Kappa[1] = kap0 * pow(EnrKin(_mom[0], specie) / T0, pow_law_T) * pow(_pos.Norm() / r0, pow_law_r);
-   Kappa[0] = kap_rat * Kappa[1];
+   Kappa[1] = kap_para * pow(EnrKin(_mom[0], specie) / T0, pow_law_T_para) * pow(_pos.Norm() / r0, pow_law_r_para);
+   Kappa[0] = kap_perp * pow(EnrKin(_mom[0], specie) / T0, pow_law_T_perp) * pow(_pos.Norm() / r0, pow_law_r_perp);
 };
 
 /*!
@@ -727,6 +729,9 @@ void DiffusionKineticEnergyRadialDistancePowerLaw::EvaluateDiffusion(void)
 double DiffusionKineticEnergyRadialDistancePowerLaw::GetDirectionalDerivative(int xyz)
 {
 // Note that this doesn't work near the origin where the radial distance is close to zero.
+   double pow_law_r = 0.0;
+   if (comp_eval == 1) pow_law_r = pow_law_r_para;
+   if (comp_eval == 0) pow_law_r = pow_law_r_perp;
    if ((0 <= xyz) && (xyz <= 2))  return Kappa[comp_eval] * pow_law_r * _pos[xyz] / Sqr(_pos.Norm());
    else return 0.0;
    return 0.0;
@@ -740,81 +745,6 @@ double DiffusionKineticEnergyRadialDistancePowerLaw::GetDirectionalDerivative(in
 double DiffusionKineticEnergyRadialDistancePowerLaw::GetMuDerivative(void)
 {
    return 0.0;
-};
-
-//----------------------------------------------------------------------------------------------------------------------------------------------------
-// DiffusionKineticEnergyRadialDistancePowerLawWithFlowProfile methods
-//----------------------------------------------------------------------------------------------------------------------------------------------------
-
-/*!
-\author Juan G Alonso Guzman
-\date 05/11/2026
-*/
-DiffusionKineticEnergyRadialDistancePowerLawWithFlowProfile::DiffusionKineticEnergyRadialDistancePowerLawWithFlowProfile(void)
-                                                           : DiffusionKineticEnergyRadialDistancePowerLaw(diff_name_kinetic_energy_radial_distance_power_law_with_flow_profile, 0, STATE_NONE)
-{
-};
-
-/*!
-\author Juan G Alonso Guzman
-\date 05/11/2026
-\param[in] other Object to initialize from
-
-A copy constructor should first first call the Params' version to copy the data container and then check whether the other object has been set up. If yes, it should simply call the virtual method "SetupDiffusion()" with the argument of "true".
-*/
-DiffusionKineticEnergyRadialDistancePowerLawWithFlowProfile::DiffusionKineticEnergyRadialDistancePowerLawWithFlowProfile(const DiffusionKineticEnergyRadialDistancePowerLawWithFlowProfile& other)
-                                                           : DiffusionKineticEnergyRadialDistancePowerLaw(other)
-{
-   RAISE_BITS(_status, STATE_NONE);
-   if (BITS_RAISED(other._status, STATE_SETUP_COMPLETE)) SetupDiffusion(true);
-};
-
-/*!
-\author Juan G Alonso Guzman
-\date 05/11/2026
-\param [in] construct Whether called from a copy constructor or separately
-
-This method's main role is to unpack the data container and set up the class data members and status bits marked as "persistent". The function should assume that the data container is available because the calling function will always ensure this.
-*/
-void DiffusionKineticEnergyRadialDistancePowerLawWithFlowProfile::SetupDiffusion(bool construct)
-{
-// The parent version must be called explicitly if not constructing
-   if (!construct) DiffusionKineticEnergyRadialDistancePowerLaw::SetupDiffusion(false);
-   double du;
-   container.Read(dkap);
-   container.Read(u0);
-   container.Read(du);
-   kap_max = kap0 + 2.0 * dkap;
-   kap_min = kap0 - 2.0 * dkap;
-   if (kap_min < 0.0) {
-      kap_max = kap0 + dkap;
-      kap_min = kap0 - dkap;
-   };
-   dkap /= du;
-};
-
-/*!
-\author Juan G Alonso Guzman
-\date 05/11/2026
-*/
-void DiffusionKineticEnergyRadialDistancePowerLawWithFlowProfile::EvaluateDiffusion(void)
-{
-   if (comp_eval == 2) return;
-   double kap = fmax(fmin(kap0 + dkap * (u0 - _spdata.Uvec.Norm()), kap_max), kap_min);
-   Kappa[1] = kap * pow(EnrKin(_mom[0], specie) / T0, pow_law_T) * pow(_pos.Norm() / r0, pow_law_r);
-   Kappa[0] = kap_rat * Kappa[1];
-};
-
-/*!
-\author Juan G Alonso Guzman
-\date 05/11/2026
-\param[in] xyz       Index for which derivative to take (0 = x, 1 = y, 2 = z, else = t)
-\return double       Directional derivative
-\note This is meant to be called after GetComponent() for the component for which the derivative is wanted
-*/
-double DiffusionKineticEnergyRadialDistancePowerLawWithFlowProfile::GetDirectionalDerivative(int xyz)
-{
-   return DiffusionBase::GetDirectionalDerivative(xyz);
 };
 
 //----------------------------------------------------------------------------------------------------------------------------------------------------

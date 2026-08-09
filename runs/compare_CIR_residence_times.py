@@ -55,7 +55,7 @@ ax.scatter(avg_kap[SC_24_25], avg_res_tim_dif[SC_24_25],
 ax.plot(kap, res_tim_dif, 'k--', linewidth=3, label='linear fit')
 
 ax.set_xlabel("$\\kappa_{rr}$ ($10^{22}$ cm$^2$ s$^{-1}$)", fontsize = 20)
-ax.set_ylabel("$\\Delta$ residence time (days)", fontsize = 20)
+ax.set_ylabel("residence time change (days)", fontsize = 20)
 ax.tick_params(labelsize=20)
 ax.legend(fontsize=20)
 

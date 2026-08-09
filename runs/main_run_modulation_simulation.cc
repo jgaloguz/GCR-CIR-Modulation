@@ -244,14 +244,22 @@ int main(int argc, char** argv)
 #endif
 
 #if CONST_DIFF > 0
-   double kap0 = 1.0;
-   double kap1 = 1.0;
-   if (argc > 6) {
+   double kap0 = 1.0e20 / unit_diffusion_fluid;
+   double kap1 = 1.0e22 / unit_diffusion_fluid;
+   double kap0_slope_r = 1.0;
+   double kap1_slope_r = 1.0;
+   double kap0_slope_T = 1.0;
+   double kap1_slope_T = 1.0;
+   if (argc > 10) {
       kap0 = atof(argv[5]) / unit_diffusion_fluid;
       kap1 = atof(argv[6]) / unit_diffusion_fluid;
+      kap0_slope_r = atof(argv[7]);
+      kap1_slope_r = atof(argv[8]);
+      kap0_slope_T = atof(argv[9]);
+      kap1_slope_T = atof(argv[10]);
    };
 
-// Base diffusion coefficient
+// Base diffusion coefficient and slopes
 #if CONST_DIFF == 1
    container.Insert(kap0);
 #else
@@ -266,12 +274,18 @@ int main(int argc, char** argv)
    container.Insert(one_au);
 
 // Power law slope for kinetic energy
-   double pow_law_Td = 1.0;
-   container.Insert(pow_law_Td);
+#if CONST_DIFF == 1
+   container.Insert(kap0_slope_T);
+#else
+   container.Insert(kap1_slope_T);
+#endif
 
 // Power law slope for radius
-   double pow_law_r = 1.0;
-   container.Insert(pow_law_r);
+#if CONST_DIFF == 1
+   container.Insert(kap0_slope_r);
+#else
+   container.Insert(kap1_slope_r);
+#endif
 
 #if CONST_DIFF == 1
 // Which coefficient to make empirical
@@ -283,8 +297,9 @@ int main(int argc, char** argv)
    container.Insert(which_kap);
 #elif CONST_DIFF >= 3
 // Ratio of perpendicular to parallel diffusion
-   double kap_rat = kap0 / kap1;
-   container.Insert(kap_rat);
+   container.Insert(kap0);
+   container.Insert(kap0_slope_T);
+   container.Insert(kap0_slope_r);
 #endif
 
 #endif
@@ -305,12 +320,20 @@ int main(int argc, char** argv)
 #if CONST_DIFF == 1 || CONST_DIFF == 3
       std::cerr << "k_perp = "
                 << kap0 * unit_diffusion_fluid
-                << " cm^2 / s" << std::endl;
+                << " cm^2 / s" << std::endl
+                << "T index = "
+                << kap0_slope_T << std::endl
+                << "r index = "
+                << kap0_slope_r << std::endl;
 #endif
 #if CONST_DIFF == 2 || CONST_DIFF == 3
       std::cerr << "k_para = "
                 << kap1 * unit_diffusion_fluid
-                << " cm^2 / s" << std::endl;
+                << " cm^2 / s" << std::endl
+                << "T index = "
+                << kap1_slope_T << std::endl
+                << "r index = "
+                << kap1_slope_r << std::endl;
 #endif
    };
 

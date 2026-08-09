@@ -474,8 +474,8 @@ class DiffusionKineticEnergyRadialDistancePowerLaw : public DiffusionBase {
 
 protected:
 
-//! Diffusion coefficient normalization factor (persistent)
-   double kap0;
+//! Parallel diffusion coefficient normalization factor (persistent)
+   double kap_para;
 
 //! Kinetic Energy normalization factor (persistent)
    double T0;
@@ -483,14 +483,20 @@ protected:
 //! Radial distance normalization factor (persistent)
    double r0;
 
-//! Power law slope for kinetic energy (persistent)
-   double pow_law_T;
+//! Power law slope for kinetic energy of parallel diffusion (persistent)
+   double pow_law_T_para;
 
-//! Power law slope for radial distance (persistent)
-   double pow_law_r;
+//! Power law slope for radial distance of parallel diffusion (persistent)
+   double pow_law_r_para;
 
-//! Ratio of perpendicular to parallel diffusion (persistent)
-   double kap_rat;
+//! Perpendicular diffusion coefficient normalization factor (persistent)
+   double kap_perp;
+
+//! Power law slope for kinetic energy of perpendicular diffusion (persistent)
+   double pow_law_T_perp;
+
+//! Power law slope for radial distance of perpendicular diffusion (persistent)
+   double pow_law_r_perp;
 
 //! Set up the diffusion model based on "params"
    void SetupDiffusion(bool construct) override;
@@ -520,61 +526,6 @@ public:
 
 //! Compute derivative of diffusion coefficient in mu
    double GetMuDerivative(void) override;
-};
-
-//----------------------------------------------------------------------------------------------------------------------------------------------------
-// DiffusionKineticEnergyRadialDistancePowerLawWithFlowProfile class declaration
-//----------------------------------------------------------------------------------------------------------------------------------------------------
-
-//! Readable name of the DiffusionKineticEnergyRadialDistancePowerLawWithFlowProfile class
-const std::string diff_name_kinetic_energy_radial_distance_power_law_with_flow_profile = "DiffusionKineticEnergyRadialDistancePowerLawWithFlowProfile";
-
-/*!
-\brief Full (perpendicular + parallel) diffusion, kinetic energy and radial distance power law
-\author Juan G Alonso Guzman
-\author Vladimir Florinski
-\author Swati Sharma
-
-Parameters: (DiffusionKineticEnergyRadialDistancePowerLaw), double dkap, double u0, double du
-*/
-class DiffusionKineticEnergyRadialDistancePowerLawWithFlowProfile : public DiffusionKineticEnergyRadialDistancePowerLaw {
-
-protected:
-
-//! Diffusion coefficient variation (persistent)
-   double dkap;
-
-//! Reference flow velocity (persistent)
-   double u0;
-
-//! Kappa upper limit (persistent)
-   double kap_max;
-
-//! Kappa lower limit (persistent)
-   double kap_min;
-
-//! Set up the diffusion model based on "params"
-   void SetupDiffusion(bool construct) override;
-
-//! Compute the diffusion coefficients
-   void EvaluateDiffusion(void) override;
-
-public:
-
-//! Default constructor
-   DiffusionKineticEnergyRadialDistancePowerLawWithFlowProfile(void);
-
-//! Copy constructor
-   DiffusionKineticEnergyRadialDistancePowerLawWithFlowProfile(const DiffusionKineticEnergyRadialDistancePowerLawWithFlowProfile& other);
-
-//! Destructor
-   ~DiffusionKineticEnergyRadialDistancePowerLawWithFlowProfile() override = default;
-
-//! Clone function
-   CloneFunctionDiffusion(DiffusionKineticEnergyRadialDistancePowerLawWithFlowProfile);
-
-//! Compute derivative of diffusion coefficient in position or time
-   double GetDirectionalDerivative(int xyz) override;
 };
 
 //----------------------------------------------------------------------------------------------------------------------------------------------------

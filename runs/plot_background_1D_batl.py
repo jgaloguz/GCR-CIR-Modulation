@@ -434,6 +434,19 @@ if plot_diff1:
    plt.savefig("output_{:s}/CIR/diff1_cuts_{:s}.png".format(args.date, args.date), dpi=200)
    plt.close()
 
+   for direction in directions:
+      Z = np.loadtxt("output_{:s}/CIR/diff1_E_{:s}_{:s}.dat".format(args.date, direction, args.date))
+      Z[:,0] = Z[:,0] * 200.0 # Unitless --> MeV
+      plt.loglog(Z[:,0], Z[:,1], label=direction)
+   plt.title('Diffusion Model Perpendicular')
+   plt.xlabel('E (MeV)')
+   plt.ylabel('$\\kappa_{\\perp}$')
+   plt.xlim(Z[0,0], Z[-1,0])
+   plt.legend()
+
+   plt.savefig("output_{:s}/CIR/diff1_E_cuts_{:s}.png".format(args.date, args.date), dpi=200)
+   plt.close()
+
 # ==================================================
 if plot_diff2:
    quants += 1
@@ -463,6 +476,19 @@ if plot_diff2:
    plt.legend()
 
    plt.savefig("output_{:s}/CIR/diff2_cuts_{:s}.png".format(args.date, args.date), dpi=200)
+   plt.close()
+
+   for direction in directions:
+      Z = np.loadtxt("output_{:s}/CIR/diff2_E_{:s}_{:s}.dat".format(args.date, direction, args.date))
+      Z[:,0] = Z[:,0] * 200.0 # Unitless --> MeV
+      plt.loglog(Z[:,0], Z[:,1], label=direction)
+   plt.title('Diffusion Model Parallel')
+   plt.xlabel('E (MeV)')
+   plt.ylabel('$\\kappa_{\\parallel}$')
+   plt.xlim(Z[0,0], Z[-1,0])
+   plt.legend()
+
+   plt.savefig("output_{:s}/CIR/diff2_E_cuts_{:s}.png".format(args.date, args.date), dpi=200)
    plt.close()
 
 # ==================================================

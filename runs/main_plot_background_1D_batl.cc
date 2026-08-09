@@ -79,6 +79,10 @@ void print_1D_cuts(MultiIndex direction, std::string cir_date, BackgroundServerB
    GeoVector mom = gv_zeros, vel = gv_zeros;
    mom[0] = mom0;
    vel[0] = Vel(mom[0], specie);
+   double E;
+   double minE = 100.0 * SPC_CONST_CGSM_MEGA_ELECTRON_VOLT / unit_energy_particle;
+   double maxE = 1000.0 * SPC_CONST_CGSM_MEGA_ELECTRON_VOLT / unit_energy_particle;
+   double dE = (log(maxE) - log(minE)) / (N - 1);
 
    std::ofstream Den_file;
    std::ofstream Pth_file;
@@ -188,6 +192,27 @@ void print_1D_cuts(MultiIndex direction, std::string cir_date, BackgroundServerB
       diff1_file.close();
       diff2_file.close();
       diff3_file.close();
+
+      pos = dir * one_au;
+      background->GetFields(t, pos, mom, spdata);
+
+      diff1_file.open("output_" + cir_date + "/CIR/diff1_E_" + dir_string + "_" + cir_date + ".dat");
+      diff2_file.open("output_" + cir_date + "/CIR/diff2_E_" + dir_string + "_" + cir_date + ".dat");
+      for (i = 0; i < N; i++) {
+         E = exp(log(minE) + dE * i);
+         mom[0] = Mom(E, specie);
+         diff1 = diffusion->GetComponent(0, t, pos, mom, spdata);
+         diff2 = diffusion->GetComponent(1, t, pos, mom, spdata);
+
+         diff1_file << std::setw(18) << E / EnrKin(mom0) 
+                    << std::setw(18) << diff1 * unit_diffusion_fluid
+                    << std::endl;
+         diff2_file << std::setw(18) << E / EnrKin(mom0)
+                    << std::setw(18) << diff2 * unit_diffusion_fluid
+                    << std::endl;
+      };      
+      diff1_file.close();
+      diff2_file.close();
 };
 
 int main(int argc, char** argv)

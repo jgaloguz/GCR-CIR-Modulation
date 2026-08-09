@@ -101,7 +101,7 @@ There is one main simulation program, compiled and executed with
 make main_run_modulation_simulation
 mpirun -np <NP> main_run_modulation_simulation <inputs>
 ```
-where up to 6 `<inputs>` are given by the following list (in order):
+where up to 10 `<inputs>` are given by the following list (in order):
 
 - (1) total number of pseudo-trajectories in simulation
 - (2) number of pseudo-trajectories per batch
@@ -109,6 +109,10 @@ where up to 6 `<inputs>` are given by the following list (in order):
 - (4) days from observed CIR arrival at which to initialize pseudo-trajectories (zero epoch)
 - (5) average perpendicular diffusion coefficient
 - (6) average parallel diffusion coefficient
+- (7) radial power slope of empirical perpendicular diffusion coefficient
+- (8) radial power slope of empirical parallel diffusion coefficient
+- (9) energy power slope of empirical perpendicular diffusion coefficient
+- (10) energy power slope of empirical parallel diffusion coefficient
 
 A variety of simulation types can be compiled using certain macros throughout the code.
 Any simulation will require inputs (1)-(4), and by default the code is prepared to compile a "full" simulation type, which includes all transport terms in the Parker Transport Equation.
@@ -117,7 +121,7 @@ Drifts can be omitted by commenting out `TRAJ_PARKER_USE_B_DRIFTS` in `../src/tr
 The diffusion model can be set through the `CONST_DIFF` macro in `main_run_modulation_simulation.cc`
 A value of `0` uses physics-based expressions.
 A value of `1` or `2` substitute perpendicular ("ndif0") or parallel ("ndif1") diffusion, respectively, with empirical formulas that do not depend on the CIR structure, while a value of `3` substitutes both ("ndif").
-In such cases, all inputs (1)-(6) are required.
+In such cases, all inputs (1)-(10) are required.
 
 Inputs (5) and (6) can be calculated using
 ```
