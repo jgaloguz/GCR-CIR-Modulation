@@ -1,3 +1,5 @@
+[![DOI](https://zenodo.org/badge/1089593156.svg)](https://doi.org/10.5281/zenodo.20649792)
+
 # GCR CIR Modulation
 
 This is a specialization of the SPECTRUM software applied to modeling galactic cosmic rays (GCR) in the heliosphere. Specifically, the codes in this repository simulate GCR modulation in corotating interaction regions (CIR), i.e. persistent inner heliosphere plasma structures that form when fast solar wind stream overtakes a slow stream, analyze the results, and generate useful figures for a future scientific publication.
