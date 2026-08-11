@@ -255,9 +255,9 @@ if plot_tur_enr:
 
    Z = np.loadtxt("output_{:s}/CIR/tur_enr_1au_{:s}.dat".format(args.date, args.date))
    plt.plot(Z[:,0], Z[:,1])
-   plt.title('Turbulent Energy (1 au)')
+   plt.title('Alfv\'enic Fluctuation Energy (1 au)')
    plt.xlabel('days')
-   plt.ylabel('$Z^2$ (cm$^2$ s$^{-2}$)')
+   plt.ylabel('$Z_A^2$ (cm$^2$ s$^{-2}$)')
    plt.xlim(epoch1, epoch2)
 
    data1DX.append(Z[:,0])
@@ -270,9 +270,9 @@ if plot_tur_enr:
    for direction in directions:
       Z = np.loadtxt("output_{:s}/CIR/tur_enr_{:s}_{:s}.dat".format(args.date, direction, args.date))
       plt.loglog(Z[:,0], Z[:,1], label=direction)
-   plt.title('Turbulent Energy')
+   plt.title('Alfv\'enic Fluctuation Energy')
    plt.xlabel('r (au)')
-   plt.ylabel('$Z^2$ (cm$^2$ s$^{-2}$)')
+   plt.ylabel('$Z_A^2$ (cm$^2$ s$^{-2}$)')
    plt.xlim(Z[0,0], Z[-1,0])
    plt.legend()
 

@@ -236,8 +236,8 @@ if plot_tur_enr:
    cmap.set_under("white")
    plt.pcolormesh(X, Y, np.transpose(Z), norm=LogNorm(vmin=np.min(Z[Z > 0.0]), vmax=np.max(Z)),
                            cmap=cmap, shading='gouraud')
-   plt.colorbar(label='$Z^2$ (cm$^2$ s$^{-2}$)')
-   plt.title('Turbulent Energy (z = 0)')
+   plt.colorbar(label='$Z_A^2$ (cm$^2$ s$^{-2}$)')
+   plt.title('Alfv\'enic Fluctuation Energy (z = 0)')
    plt.xlabel('x (au)')
    plt.ylabel('y (au)')
 
@@ -249,8 +249,8 @@ if plot_tur_enr:
    cmap.set_under("white")
    plt.pcolormesh(X, Y, np.transpose(Z), norm=LogNorm(vmin=np.min(Z[Z > 0.0]), vmax=np.max(Z)),
                            cmap=cmap, shading='gouraud')
-   plt.colorbar(label='$Z^2$ (cm$^2$ s$^{-2}$)')
-   plt.title('Turbulent Energy (y = 0)')
+   plt.colorbar(label='$Z_A^2$ (cm$^2$ s$^{-2}$)')
+   plt.title('Alfv\'enic Fluctuation Energy (y = 0)')
    plt.xlabel('x (au)')
    plt.ylabel('z (au)')
 

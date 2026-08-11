@@ -19,9 +19,9 @@ m_p = 1.67262192e-24
 # Import ACE data
 ACE_SW = np.loadtxt("data/SI_{:s}_SW.txt".format(args.date))
 ACE_SW[:,4] = ACE_SW[:,4] / 1000
-ACE_SW[:,5] = m_p * ACE_SW[:,3] * ACE_SW[:,5] * 1.0e9
+ACE_SW[:,5] = m_p * ACE_SW[:,3] * ACE_SW[:,5] / 1.0e-10 # G^2 --> nT
 
-labels = ["$|B|$ (nT)", "$|u|$ (km/s)", "$n$ (amu/cc)", "$T$ (kK)", "$Z^2$ (nerg cm$^{-3}$)"]
+labels = ["$|B|$ (nT)", "$|u|$ (km/s)", "$n$ (amu/cc)", "$T$ (kK)", "$\\langle \\delta B^2\\rangle$ (nT$^2$)"]
 
 # Import sim data
 Z = np.loadtxt("output_{:s}/CIR/mag_1au_{:s}.dat".format(args.date, args.date))
@@ -39,7 +39,7 @@ SIM_SW[:,3] = Z[idx_l:idx_h,1]
 Z = np.loadtxt("output_{:s}/CIR/pth_1au_{:s}.dat".format(args.date, args.date))
 SIM_SW[:,4] = Z[idx_l:idx_h,1] / 10.0 / SIM_SW[:,3] / 1.0e6 / 1.380649e-23 / 1.0e3 # T = P / (n*k_B) and dyn/cm^2 --> Pa and cm^-3 --> m^-3 and K --> kK
 Z = np.loadtxt("output_{:s}/CIR/tur_enr_1au_{:s}.dat".format(args.date, args.date))
-SIM_SW[:,5] = m_p * SIM_SW[:,3] * Z[idx_l:idx_h,1] * 1.0e9
+SIM_SW[:,5] = m_p * SIM_SW[:,3] * Z[idx_l:idx_h,1] / 1.0e-10 # G^2 --> nT
 
 # Make plots
 fig = plt.figure(figsize=(14, 8), layout='tight')
