@@ -1,6 +1,6 @@
 cff-version: 1.2.0
 message: "If you use this software, please cite it using this metadata."
-title: "Galactic Cosmic Ray Corotating Interaction Region Modeling Tools: a SPECTRUM fork"
+title: "Galactic Cosmic Ray Corotating Interaction Region Modulation Modeling Tools: a SPECTRUM fork"
 abstract: "This software is a specialization of the Space Plasma and Energetic Charged particle TRansport on Unstructured Meshes (SPECTRUM) code to modeling the modulation of galactic cosmic rays in corotating interaction regions."
 authors:
   - family-names: Alonso Guzman
@@ -11,12 +11,12 @@ authors:
     orcid: "https://orcid.org/0000-0001-5485-2872"
 repository-code: "https://github.com/jgaloguz/Diffusive-Shock-Acceleration"
 license: Apache-2.0
-version: 1.1.0
+version: 1.1.1
 date-released: "2026-08-09"
 identifiers:
-  - description: "Archived snapshot of version 1.1.0 of Galactic Cosmic Ray Corotating Interaction Region Modeling Tools: a SPECTRUM fork"
+  - description: "Archived snapshot of version 1.1.1 of Galactic Cosmic Ray Corotating Interaction Region Modulation Modeling Tools: a SPECTRUM fork"
     type: doi
-    value: 10.5281/zenodo.21864852
+    value: 10.5281/zenodo.21904128
 keywords:
   - "galactic cosmic rays"
   - "solar wind"
